@@ -1,3 +1,4 @@
+// KeepassNFC
 package net.lardcave.keepassnfcapplet;
 
 import javacard.framework.*;
