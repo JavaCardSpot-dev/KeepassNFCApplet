@@ -1,0 +1,109 @@
+group 'test-applet'
+version '1.0-SNAPSHOT'
+
+// Buildscript configuration for the javacard-gradle plugin.
+// Do not modify this particular block. Dependencies for the project are lower.
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.klinec:gradle-javacard:1.5.5'
+    }
+}
+
+apply plugin: 'javacard'
+sourceCompatibility = 1.7
+
+// Common settings, definitions
+final def rootPath = rootDir.absolutePath
+final def libs = rootPath + '/libs'
+final def libsSdk = rootPath + '/libs-sdks'
+
+// Repositories for your project
+repositories {
+    mavenCentral()
+    // mavenLocal() // for local maven repository if needed
+    flatDir {
+        dirs libs
+    }
+}
+
+// Dependencies for your project
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile 'org.testng:testng:6.1.1'
+
+    // jcardsim 'com.licel:jcardsim:3.0.4'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+        }
+    }
+
+    test {
+        java {
+            srcDir 'test/java'
+        }
+        resources {
+            srcDir 'test/resources'
+        }
+    }
+}
+
+test {
+    useTestNG()
+    jvmArgs '-noverify'
+}
+
+// JavaCard SDKs and libraries
+final def JC212 = 'jc212'
+final def JC221 = 'jc221'
+final def JC222 = 'jc222'
+final def JC303 = 'jc303'
+final def JC304 = 'jc304'
+final def JC305 = 'jc305u1'
+
+// Which JavaCard SDK to use - select
+final def JC_SELECTED = JC221
+
+final def JC_ENABLED = [
+        JC221, JC222, JC303, JC304, JC305
+]
+
+javacard {
+
+    //noinspection GroovyAssignabilityCheck
+    config {
+        jckit libsSdk + '/' + JC_SELECTED + '_kit'
+
+        // JCardSim automatically added by the javacard-gradle plugin
+        addSurrogateJcardSimRepo true
+        addImplicitJcardSim true
+        addImplicitJcardSimJunit true
+
+        //noinspection GroovyAssignabilityCheck
+        cap {
+            packageName 'net.lardcave.keepassnfcapplet'
+            version '0.1'
+            aid 'F0:37:54:72:80:4F:D5:FA:0F:24:3E:42:C1:B6:38'
+            // output 'net.lardcave.keepassnfcapplet.' + JC_SELECTED + '.cap'
+            output '../../../bin/net/lardcave/keepassnfcapplet/' + JC_SELECTED + '/keepassnfcapplet.cap'
+
+            //noinspection GroovyAssignabilityCheck
+            applet {
+                className 'net.lardcave.keepassnfcapplet.KeepassNFC'
+                aid 'F0:37:54:72:80:4F:D5:FA:0F:24:3E:42:C1:B6:38:25'
+            }
+
+            //noinspection GroovyAssignabilityCheck
+            dependencies {
+                remote 'fr.bmartel:gplatform:2.1.1'
+            }
+        }
+    }
+}
+
