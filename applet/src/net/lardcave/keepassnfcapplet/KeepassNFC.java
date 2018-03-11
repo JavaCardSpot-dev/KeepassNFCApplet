@@ -1,4 +1,5 @@
-// KeepassNFC
+// This source code describes the KeePass NFC Applet
+
 package net.lardcave.keepassnfcapplet;
 
 import javacard.framework.*;
@@ -8,24 +9,24 @@ import javacardx.crypto.Cipher;
 // TODO: encrypt-then-MAC: http://crypto.stackexchange.com/questions/202/should-we-mac-then-encrypt-or-encrypt-then-mac
 
 public class KeepassNFC extends Applet {
-	final static byte CLA_CARD_KPNFC_CMD           = (byte)0xB0;
+	final static byte CLA_CARD_KPNFC_CMD           = (byte)0xB0;   // class
 
-	final static byte INS_CARD_GET_CARD_PUBKEY     = (byte)0x70;
-	final static byte INS_CARD_SET_PASSWORD_KEY    = (byte)0x71;
-	final static byte INS_CARD_PREPARE_DECRYPTION  = (byte)0x72;
+	final static byte INS_CARD_GET_CARD_PUBKEY     = (byte)0x70;   // Instruction to get card public key
+	final static byte INS_CARD_SET_PASSWORD_KEY    = (byte)0x71;   // Instruction to set password key
+	final static byte INS_CARD_PREPARE_DECRYPTION  = (byte)0x72;   // Instruction for decryption
 	final static byte INS_CARD_DECRYPT_BLOCK       = (byte)0x73;
-	final static byte INS_CARD_GET_VERSION         = (byte)0x74;
+	final static byte INS_CARD_GET_VERSION         = (byte)0x74;   // instruction to get version
 	final static byte INS_CARD_GENERATE_CARD_KEY   = (byte)0x75;
 	final static byte INS_CARD_WRITE_TO_SCRATCH    = (byte)0x76;
 
-	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;
-	final static byte RESPONSE_FAILED              = (byte)0x2;
+	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
+	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;
 
 	final static byte VERSION                      = (byte)0x1;
 
-	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;
-	final static short RSA_KEYLENGTH               = KeyBuilder.LENGTH_RSA_2048;
+	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;    // genrtaion of key pair using RSA algorithm
+	final static short RSA_KEYLENGTH               = KeyBuilder.LENGTH_RSA_2048;   // RSA key length 2048
 
 	private KeyPair card_key;
 	private AESKey password_key;
@@ -57,31 +58,33 @@ public class KeepassNFC extends Applet {
 
 		register();
 	}
-
+   
+	// method to install the applet
 	public static void install(byte[] bArray, short bOffset, byte bLength) throws ISOException
 	{
 		new KeepassNFC(bArray, bOffset, bLength);
 	}
-
+        // method to select the applet
 	public boolean select()
 	{
 		return true;
 	}
-
+        
 	public void deselect()
 	{
 	}
-
+       
+	// method to process APDU from client
 	public void process(APDU apdu) throws ISOException
 	{
-		byte[] buffer = apdu.getBuffer();
+		byte[] buffer = apdu.getBuffer();   // buffer for holding the header
 
 		if(selectingApplet())
 			return;
 
-		if(buffer[ISO7816.OFFSET_CLA] == CLA_CARD_KPNFC_CMD) {
+		if(buffer[ISO7816.OFFSET_CLA] == CLA_CARD_KPNFC_CMD) {   // checking CLA field of header 
 			switch(buffer[ISO7816.OFFSET_INS]) {
-				case INS_CARD_GET_CARD_PUBKEY:
+				case INS_CARD_GET_CARD_PUBKEY:    // if instruction to get card public key
 					getCardPubKey(apdu);
 					break;
 				case INS_CARD_SET_PASSWORD_KEY:
