@@ -87,7 +87,7 @@ public class KeepassNFC extends Applet {
 				case INS_CARD_GET_CARD_PUBKEY:    // if instruction to get card public key
 					getCardPubKey(apdu);
 					break;
-				case INS_CARD_SET_PASSWORD_KEY:
+				case INS_CARD_SET_PASSWORD_KEY:   // setting the password key
 					setPasswordKey(apdu);
 					break;
 				case INS_CARD_PREPARE_DECRYPTION:
@@ -96,7 +96,7 @@ public class KeepassNFC extends Applet {
 				case INS_CARD_DECRYPT_BLOCK:
 					decryptBlock(apdu);
 					break;
-				case INS_CARD_GET_VERSION:
+				case INS_CARD_GET_VERSION:   // getting teh version
 					getVersion(apdu);
 					break;
 				case INS_CARD_GENERATE_CARD_KEY:
@@ -125,7 +125,7 @@ public class KeepassNFC extends Applet {
 
 	protected void getCardPubKey(APDU apdu)
 	{
-		byte[] buffer = apdu.getBuffer();
+		byte[] buffer = apdu.getBuffer();   // buffer to hold the header
 		short length  = apdu.setIncomingAndReceive();
 
 		/* in:
