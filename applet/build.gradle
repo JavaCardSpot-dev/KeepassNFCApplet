@@ -70,18 +70,27 @@ final def JC303 = 'jc303'
 final def JC304 = 'jc304'
 final def JC305 = 'jc305u1'
 
-// Which JavaCard SDK to use - select
-final def JC_SELECTED = JC221
-
+// Which JavaCard SDK can be used
 final def JC_ENABLED = [
-        JC221, JC222, JC303, JC304, JC305
+    JC221, JC222, JC303, JC304, JC305
 ]
+
+// Which JavaCard SDK to use by default
+def JC_SELECTED = JC221
+
+// Check if user wants to compile with a specific enabled JavaCard SDK
+final def JCSDK = System.getenv('JCSDK')
+if (JCSDK in JC_ENABLED) {
+    JC_SELECTED = JCSDK
+} else if (JCSDK) {
+    throw new InvalidUserDataException("JCSDK environment variable is set to an SDK not available for this project")
+}
 
 javacard {
 
     //noinspection GroovyAssignabilityCheck
     config {
-        jckit libsSdk + '/' + JC_SELECTED + '_kit'
+        jckit "${libsSdk}/${JC_SELECTED}_kit"
 
         // JCardSim automatically added by the javacard-gradle plugin
         addSurrogateJcardSimRepo true
@@ -94,7 +103,7 @@ javacard {
             version '0.1'
             aid 'F0:37:54:72:80:4F:D5:FA:0F:24:3E:42:C1:B6:38'
             // output 'net.lardcave.keepassnfcapplet.' + JC_SELECTED + '.cap'
-            output '../../../bin/net/lardcave/keepassnfcapplet/' + JC_SELECTED + '/keepassnfcapplet.cap'
+            output "../../../bin/net/lardcave/keepassnfcapplet/${JC_SELECTED}/keepassnfcapplet.cap"
 
             //noinspection GroovyAssignabilityCheck
             applet {
