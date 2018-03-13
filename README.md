@@ -21,10 +21,11 @@ Also, it provides integration with Travis Continuous Integration platform, with 
 
 This build configuration can be easily used with all the IDEs that gives integration with Gradle (IntelliJ, NetBeans, Eclipse...).
 
-After recursively cloning the repository, you can simply set the desired JavaCard SDK to use (variable `JC_SELECTED`) in the [applet/build.gradle](applet/build.gradle) file (by default it has the minimum required SDK version as value) and run
+After recursively cloning the repository (to gather all the JavaCard SKDs), you can choose the desired JavaCard SDK to use by setting the `JCSDK` environment variable (by default it is empty, and the minimum required SDK version will be used). Then simply run
 ```
 ./gradlew buildJavaCard --info
 ```
+to get the `.cap` file.
 
 ## Known compatibilities
 It should work on [JC30M48](http://www.javacardos.com/store/javacard-jc30m48cr.php?ws=github&prj=KeepassNFC), the downloading and installation have been tested on this card.
