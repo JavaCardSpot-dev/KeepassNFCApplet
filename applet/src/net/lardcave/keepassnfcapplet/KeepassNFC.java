@@ -9,11 +9,11 @@ import javacardx.crypto.Cipher;
 // TODO: encrypt-then-MAC: http://crypto.stackexchange.com/questions/202/should-we-mac-then-encrypt-or-encrypt-then-mac
 
 public class KeepassNFC extends Applet {
-	final static byte CLA_CARD_KPNFC_CMD           = (byte)0xB0;   // class
+	final static byte CLA_CARD_KPNFC_CMD           = (byte)0xB0;   // class identification of the card being used for applet
 
 	final static byte INS_CARD_GET_CARD_PUBKEY     = (byte)0x70;   // Instruction to get card public key
 	final static byte INS_CARD_SET_PASSWORD_KEY    = (byte)0x71;   // Instruction to set password key
-	final static byte INS_CARD_PREPARE_DECRYPTION  = (byte)0x72;   // Instruction for decryption
+	final static byte INS_CARD_PREPARE_DECRYPTION  = (byte)0x72;   // Instruction for PKI safe share the AES decryption
 	final static byte INS_CARD_DECRYPT_BLOCK       = (byte)0x73;
 	final static byte INS_CARD_GET_VERSION         = (byte)0x74;   // instruction to get version
 	final static byte INS_CARD_GENERATE_CARD_KEY   = (byte)0x75;
