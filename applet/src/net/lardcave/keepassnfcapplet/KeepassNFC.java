@@ -28,6 +28,7 @@ public class KeepassNFC extends Applet {
 	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;    // genrtaion of key pair using RSA algorithm
 	final static short RSA_KEYLENGTH               = KeyBuilder.LENGTH_RSA_2048;   // RSA key length 2048
 
+	//definining the variables
 	private KeyPair card_key;
 	private AESKey password_key;
 	private AESKey transaction_key;
@@ -36,9 +37,9 @@ public class KeepassNFC extends Applet {
 	private Cipher password_cipher;
 	private Cipher transaction_cipher;
 
-	private byte[] scratch_area;
+	private byte[] scratch_area;	// space to store the keys or data at different times during encryption/decryption
 	private byte[] aes_key_temporary;
-	private boolean card_cipher_initialised;
+	private boolean card_cipher_initialised;	// Initialisation to generate RSA key pair
 
 	private short rsa_modulus_length = 0; // only used when sending (partial) modulus in getCardPubKey()
 
