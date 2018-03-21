@@ -43,7 +43,7 @@ public class KeepassNFC extends Applet {
 
 	private short rsa_modulus_length = 0; // only used when sending (partial) modulus in getCardPubKey()
 
-	//method to preserve the three keys
+	//method to generate the three keys
 	protected KeepassNFC(byte[] bArray, short bOffset, byte bLength)
 	{
 		card_key = new KeyPair(RSA_ALGORITHM, RSA_KEYLENGTH);
