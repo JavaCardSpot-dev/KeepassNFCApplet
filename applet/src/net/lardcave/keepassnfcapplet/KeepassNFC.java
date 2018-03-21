@@ -104,7 +104,7 @@ public class KeepassNFC extends Applet {
 				case INS_CARD_GENERATE_CARD_KEY:
 					generateCardKey(apdu);
 					break;
-				case INS_CARD_WRITE_TO_SCRATCH:
+				case INS_CARD_WRITE_TO_SCRATCH:	//APDU instruction to write in the scratch area
 					writeToScratch(apdu);
 					break;
 				default:
