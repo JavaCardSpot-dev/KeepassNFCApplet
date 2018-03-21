@@ -21,14 +21,14 @@ public class KeepassNFC extends Applet {
 
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
-	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816
+	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
 
 	final static byte VERSION                      = (byte)0x1;
 
 	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;    // genrtaion of key pair using RSA algorithm
 	final static short RSA_KEYLENGTH               = KeyBuilder.LENGTH_RSA_2048;   // RSA key length 2048
 
-	//definining the variables
+	// Definining the variables
 	private KeyPair card_key;
 	private AESKey password_key;
 	private AESKey transaction_key;
@@ -92,7 +92,7 @@ public class KeepassNFC extends Applet {
 				case INS_CARD_SET_PASSWORD_KEY:   // setting the password key
 					setPasswordKey(apdu);
 					break;
-				case INS_CARD_PREPARE_DECRYPTION:	
+				case INS_CARD_PREPARE_DECRYPTION:	//to exchange safely the AES keys for decryption via PKI system 
 					prepareDecryption(apdu);
 					break;
 				case INS_CARD_DECRYPT_BLOCK:
