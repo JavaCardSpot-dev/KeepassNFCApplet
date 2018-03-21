@@ -125,6 +125,7 @@ public class KeepassNFC extends Applet {
 	private static final short PUBKEY_RESPONSE_EXPONENT_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_EXPONENT_OFFSET);
 	private static final short PUBKEY_RESPONSE_MODULUS_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_MODULUS_OFFSET);
 
+	//method to send pulic key (exponent & modulus) to the user application
 	protected void getCardPubKey(APDU apdu)
 	{
 		byte[] buffer = apdu.getBuffer();   // buffer to hold the header
@@ -187,6 +188,7 @@ public class KeepassNFC extends Applet {
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, lengthOut);
 	}
 
+	//method to share AES password key required for decryption of block thru PKI means
 	protected void setPasswordKey(APDU apdu)
 	{
 		/* The the password key (the private AES key which is used as the decryption key in decryptBlock()).
