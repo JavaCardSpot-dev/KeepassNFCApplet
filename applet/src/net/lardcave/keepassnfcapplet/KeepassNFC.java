@@ -39,7 +39,7 @@ public class KeepassNFC extends Applet {
 
 	private byte[] scratch_area;	// space to store the keys or data at different times during encryption/decryption
 	private byte[] aes_key_temporary;
-	private boolean card_cipher_initialised;	// Initialisation to generate RSA key pair
+	private boolean card_cipher_initialised;	// Initialisation of key to maintain the randomness in the cipher data 
 
 	private short rsa_modulus_length = 0; // only used when sending (partial) modulus in getCardPubKey()
 
