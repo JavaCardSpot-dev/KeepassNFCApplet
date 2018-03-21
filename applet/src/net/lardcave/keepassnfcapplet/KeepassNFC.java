@@ -21,7 +21,7 @@ public class KeepassNFC extends Applet {
 
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
-	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;
+	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816
 
 	final static byte VERSION                      = (byte)0x1;
 
@@ -43,6 +43,7 @@ public class KeepassNFC extends Applet {
 
 	private short rsa_modulus_length = 0; // only used when sending (partial) modulus in getCardPubKey()
 
+	//method to preserve the three keys
 	protected KeepassNFC(byte[] bArray, short bOffset, byte bLength)
 	{
 		card_key = new KeyPair(RSA_ALGORITHM, RSA_KEYLENGTH);
@@ -85,13 +86,13 @@ public class KeepassNFC extends Applet {
 
 		if(buffer[ISO7816.OFFSET_CLA] == CLA_CARD_KPNFC_CMD) {   // checking CLA field of header 
 			switch(buffer[ISO7816.OFFSET_INS]) {
-				case INS_CARD_GET_CARD_PUBKEY:    // if instruction to get card public key
+				case INS_CARD_GET_CARD_PUBKEY:    // instruction to get card public key
 					getCardPubKey(apdu);
 					break;
 				case INS_CARD_SET_PASSWORD_KEY:   // setting the password key
 					setPasswordKey(apdu);
 					break;
-				case INS_CARD_PREPARE_DECRYPTION:
+				case INS_CARD_PREPARE_DECRYPTION:	
 					prepareDecryption(apdu);
 					break;
 				case INS_CARD_DECRYPT_BLOCK:
@@ -305,6 +306,7 @@ public class KeepassNFC extends Applet {
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
 	}
 
+	// method to 
 	private boolean decryptWithCardKey(byte[] input, short offset, byte[] output)
 	{
 		if(!card_cipher_initialised) {
