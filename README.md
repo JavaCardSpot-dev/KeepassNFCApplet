@@ -7,6 +7,7 @@ KeePass is an open source password manager that aims to store passwords securely
 KeepassNFC is an applet in javacard platform that can protect the secret key of KeePass database. It was based on the project [smartcard_crypto_applet](https://github.com/nfd/smartcard_crypto_applet) and can be run on javacard platform with [JCRE](http://javacardos.com/wiki/index.php/home/index/index/model/jcre/app_name/JCRESpec01intro.html?ws=github&prj=KeepassNFC) version 2.2.x or above.
 KeePass is a famous software about password managerment.
 
+KeepassNFC applet is meant to use the card with NFC (near field communication) technology which enables the user with contactless use of the card installed with this applet.
 
 ## Compiling the project
 This project has two different build systems that can be used. [JCIDE](#jcide) is the one originally used, the Gradle integration has been added later using the [template](https://github.com/crocs-muni/javacard-gradle-template-edu) from [@crocs-muni](https://github.com/crocs-muni/).
