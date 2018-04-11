@@ -61,7 +61,10 @@ The applet functionality can broadly classified into two categories:
 (iii)User then generates two IV (for transaction key and Password key) and sends to App
 (iv) App iniatises the cipher for password decryption and for encryption of transaction with IV and sent by user
 (v) User then sends the encrypted database to App
-(vi)App decrypts teh database with Password key 
+(vi)App decrypts the database with Password key 
+(vii)App then sends the retrieved data after doing encryption with Transaction Key to user
+(viii)User then decrypts the recieved data with transaction key
+
 
 
 ## Security Issues found in the Applet:
