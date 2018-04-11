@@ -28,6 +28,20 @@ Absence of state management: Presently, there is check for handling the error st
     
 6. No memory intialisation: Many primitives and byte arrays are not initialised, thus they may contain garbage values. These can be initialised to NULL.
 
+## Cryptographic security issues (Attack surface)
+1. AES-128 used is not considered too much secure due to key length of 128 bit. Hence, AES-256 can be used, also considering that AES-128 is not a supported algorithm by the main KeePass branch. Moreover, at least the others officially supported algorithms should be implemented by the applet. The managing of what “password” is, is left to the user application with reference to the official documentation.
+
+2. Integrity and Protocol: Furthermore, there is no use of MAC to verify the integrity of data received or sent, and no real, well-tested protocol is used to ensure a secure communication channel between the user and the applet.
+
+3. MITM: also, the absence of a real protocol of communication, exposes the security bug of a MITM attack during the sending of the public key to the user: it can be spoofed, gaining access to every future communication, both in reading and writing modes.
+
+4. General Oracle: also, this exposes the ability for an attacker to spam the NFC channel in a bid to further attacks.
+
+5. Padding Oracle Attack: all the AES-128 operations are implemented without padding, thus they’re not subject to this type of attack. However, the RSA algorithm used to encrypt the initial communication uses PKCS #1, that applies padding and is hence vulnerable to this class of attack during encryption/decryption.
+
+6. Side channel attacks
+The applet must be thoroughly tested if susceptible to side channel attacks, for example an adversary could perform a timing attack on calculations performed by RSA algorithm for generation of public and private key using modulus exponent form.
+
 ## Compiling the project
 This project has two different build systems that can be used. [JCIDE](#jcide) is the one originally used, the Gradle integration has been added later using the [template](https://github.com/crocs-muni/javacard-gradle-template-edu) from [@crocs-muni](https://github.com/crocs-muni/).
 
