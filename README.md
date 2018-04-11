@@ -38,6 +38,8 @@ The applet functionality can broadly classified into two categories:
 (a) Card Configuration
 (b) Card Usage
 
+## Card Configuration
+
 ## Maintainers
 The original creator of the project is the [JavaCardOS](http://www.javacardos.com/) community.
 
