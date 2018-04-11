@@ -32,6 +32,12 @@ to get the `.cap` file.
 ## Known compatibilities
 It should work on [JC30M48](http://www.javacardos.com/store/javacard-jc30m48cr.php?ws=github&prj=KeepassNFC), the downloading and installation have been tested on this card.
 
+##  Usage
+The Applet is able to decrypt the database at user’s wish with the use of password key stored in the card and IV sent by user.
+The applet functionality can broadly classified into two categories:
+(a) Card Configuration
+(b) Card Usage
+
 ## Maintainers
 The original creator of the project is the [JavaCardOS](http://www.javacardos.com/) community.
 
