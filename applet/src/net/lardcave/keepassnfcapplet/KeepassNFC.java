@@ -45,11 +45,14 @@ public class KeepassNFC extends Applet {
 
 	//method to generate the three keys
 	protected KeepassNFC(byte[] bArray, short bOffset, byte bLength)
-	{
+	{      
+		// Generating RSA Key pair
 		card_key = new KeyPair(RSA_ALGORITHM, RSA_KEYLENGTH);
+		// AES -128 Bit Passowrd Key
 		password_key = (AESKey)KeyBuilder.buildKey(KeyBuilder.TYPE_AES, KeyBuilder.LENGTH_AES_128, false);
+		// AES -128 Bit Transaction key
 		transaction_key = (AESKey)KeyBuilder.buildKey(KeyBuilder.TYPE_AES_TRANSIENT_DESELECT, KeyBuilder.LENGTH_AES_128, false);
-
+                 
 		card_cipher = Cipher.getInstance(Cipher.ALG_RSA_PKCS1, false);
 		password_cipher = Cipher.getInstance(Cipher.ALG_AES_BLOCK_128_CBC_NOPAD, false);
 		transaction_cipher = Cipher.getInstance(Cipher.ALG_AES_BLOCK_128_CBC_NOPAD, false);
@@ -86,7 +89,7 @@ public class KeepassNFC extends Applet {
 
 		if(buffer[ISO7816.OFFSET_CLA] == CLA_CARD_KPNFC_CMD) {   // checking CLA field of header 
 			switch(buffer[ISO7816.OFFSET_INS]) {
-				case INS_CARD_GET_CARD_PUBKEY:    // instruction to get card public key
+				case INS_CARD_GET_CARD_PUBKEY:    // Getting the card public key
 					getCardPubKey(apdu);
 					break;
 				case INS_CARD_SET_PASSWORD_KEY:   // setting the password key
@@ -95,13 +98,13 @@ public class KeepassNFC extends Applet {
 				case INS_CARD_PREPARE_DECRYPTION:	//to exchange safely the AES keys for decryption via PKI system 
 					prepareDecryption(apdu);
 					break;
-				case INS_CARD_DECRYPT_BLOCK:
+				case INS_CARD_DECRYPT_BLOCK:   // decryption of database
 					decryptBlock(apdu);
 					break;
-				case INS_CARD_GET_VERSION:   // getting teh version
+				case INS_CARD_GET_VERSION:   // getting the version
 					getVersion(apdu);
 					break;
-				case INS_CARD_GENERATE_CARD_KEY:
+				case INS_CARD_GENERATE_CARD_KEY:  // generating the card keys
 					generateCardKey(apdu);
 					break;
 				case INS_CARD_WRITE_TO_SCRATCH:	//APDU instruction to write in the scratch area
@@ -165,7 +168,8 @@ public class KeepassNFC extends Applet {
 				RSAPublicKey key = (RSAPublicKey) card_key.getPublic();
 				rsa_modulus_length = key.getModulus(scratch_area, (short)0);
 			}
-
+                   
+			// calculating the length of key
 			short amountToSend = (short)(rsa_modulus_length - offset);
 
 			// clamp amountToSend between 0 and maximum buffer length.
@@ -173,7 +177,7 @@ public class KeepassNFC extends Applet {
 				amountToSend = PUBKEY_MAX_SEND_LENGTH;
 			if(amountToSend < 0)
 				amountToSend = 0;
-
+                        
 			Util.arrayCopy(scratch_area, offset, buffer, PUBKEY_RESPONSE_MODULUS_IDX, amountToSend);
 
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
@@ -184,7 +188,7 @@ public class KeepassNFC extends Applet {
 		} else {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 		}
-
+                // sending the length of key to user
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, lengthOut);
 	}
 
