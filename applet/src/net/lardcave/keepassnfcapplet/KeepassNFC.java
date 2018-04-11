@@ -1,4 +1,5 @@
-// This source code describes the KeePass NFC Applet
+// This source code describes KeepassNFC applet which will interact with user to decrypt his encrypted database
+// The applet currently provides decryption of already encrypted database which user will send to app for decryption
 
 package net.lardcave.keepassnfcapplet;
 
