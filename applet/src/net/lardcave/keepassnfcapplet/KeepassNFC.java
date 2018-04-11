@@ -204,8 +204,8 @@ public class KeepassNFC extends Applet {
 
 		decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
 		password_key.setKey(aes_key_temporary, (short)0);
-		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)0, (byte)0);
-		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)0, (byte)0);
+		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
