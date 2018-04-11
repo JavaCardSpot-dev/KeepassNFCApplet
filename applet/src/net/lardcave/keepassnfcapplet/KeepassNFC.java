@@ -204,6 +204,8 @@ public class KeepassNFC extends Applet {
 
 		decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
 		password_key.setKey(aes_key_temporary, (short)0);
+		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
@@ -224,6 +226,8 @@ public class KeepassNFC extends Applet {
 		if(length == 32) {
 			decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
 			transaction_key.setKey(aes_key_temporary, (short)0);
+			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 
 			transaction_cipher.init(transaction_key, Cipher.MODE_ENCRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 0), (short)16);
 			password_cipher.init(password_key, Cipher.MODE_DECRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 16), (short)16);
@@ -244,21 +248,30 @@ public class KeepassNFC extends Applet {
 		boolean succeeded = false;
 
 		short decrypted = 0;
-		if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {	// Not last block;
-			decrypted = password_cipher.update(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
-		} else {										// Last block;
-			decrypted = password_cipher.doFinal(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
-		}
-		if(decrypted > 0) {
-			/* We decrypted the blocks successfully, now re-encrypt with the transaction key. */
-			short encrypted = transaction_cipher.update(scratch_area, (short)0, decrypted, buffer, (short)(ISO7816.OFFSET_CDATA + 1));
-			if(encrypted > 0) {
-				/* We encrypted the new block successfully. */
-				succeeded = true;
+		try {
+			if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {	// Not last block;
+				decrypted = password_cipher.update(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
+			} else {										// Last block;
+				decrypted = password_cipher.doFinal(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
 			}
+			if(decrypted > 0) {
+				/* We decrypted the blocks successfully, now re-encrypt with the transaction key. */
+				short encrypted = transaction_cipher.update(scratch_area, (short)0, decrypted, buffer, (short)(ISO7816.OFFSET_CDATA + 1));
+				if(encrypted > 0) {
+					/* We encrypted the new block successfully. */
+					succeeded = true;
+				}
+			}
+
+			buffer[RESPONSE_STATUS_OFFSET] = succeeded ? RESPONSE_SUCCEEDED : RESPONSE_FAILED;
+		} catch (CryptoException e) {
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			decrypted = 0;
+		} finally {
+			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
+			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		}
 
-		buffer[RESPONSE_STATUS_OFFSET] = succeeded ? RESPONSE_SUCCEEDED : RESPONSE_FAILED;
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)(decrypted + 1));
 	}
 
