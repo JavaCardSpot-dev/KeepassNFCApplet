@@ -39,8 +39,8 @@ public class KeepassNFC extends Applet {
 	private Cipher transaction_cipher =null;
 
 	private byte[] scratch_area = null;	// space to store the keys or data at different times during encryption/decryption
-	private byte[] aes_key_temporary;
-	private boolean card_cipher_initialised;	// Initialisation of key to maintain the randomness in the cipher data 
+	private byte[] aes_key_temporary =null;
+	private boolean card_cipher_initialised =true;	// Initialisation of key to maintain the randomness in the cipher data 
 
 	private short rsa_modulus_length = 0; // only used when sending (partial) modulus in getCardPubKey()
 
@@ -238,7 +238,7 @@ public class KeepassNFC extends Applet {
 			password_cipher.init(password_key, Cipher.MODE_DECRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 16), (short)16);
 
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-		} else {
+		} else { 
 			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
 		}
 
