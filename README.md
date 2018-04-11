@@ -55,7 +55,13 @@ The applet functionality can broadly classified into two categories:
 
 (b) Card functions during use:
 
-  (i)
+  
+(i) User generates AES-128 Transacrtion key generated for each transaction and encrypts with public key it already have
+(ii)User then send this encrypted transaction key to applet
+(iii)User then generates two IV (for transaction key and Password key) and sends to App
+(iv) App iniatises the cipher for password decryption and for encryption of transaction with IV and sent by user
+(v) User then sends the encrypted database to App
+(vi)App decrypts teh database with Password key 
 
 
 ## Security Issues found in the Applet:
