@@ -43,16 +43,18 @@ The applet functionality can broadly classified into two categories:
 (a) Card Configuration
 (b) Card Usage
 
-## Card Configuration
+(a) Card functions during Configuration:
+  (i) As a first step ,the user will send APDU to applet for generation of 2048b RSA key. The format of APDU is [0x75] - Generate Card Key. This method doesn’t expect any input, and if called it will reset the internal key, setting a flag indicating that the cipher isn’t initialized.   
+  (ii) The applet will then generate the key pair and send the output APDU contains three bytes indicating (1) the success of the operation and (2-3) the length of the internal key.
+  (iii)User will then request for public key from applet
+  (iv) Applet will then send the public key back to user
+  (v) User will then generate the password key using his password 
+  (vi)User will then send the password key encrypted with public key to applet
+  (vii) Applet will then decrypt the password key with his private key and save it safely in EPROM using standard API
 
-(i) As a first step ,the user will send APDU to applet for generation of 2048b RSA key. The format of APDU is [0x75] - Generate Card Key
-    This method doesn’t expect any input, and if called it will reset the internal key, setting a flag indicating that the cipher isn’t initialized.   
-(ii) The applet will ##then generate the key pair and send the output APDU contains three bytes indicating (1) the success of the operation and (2-3) the length of the internal key.
-(iii)User will then request for public key from applet
-(iv) Applet will then sent the public key back to user
-(v) User will then generate the password key using his password 
-(vi)User will then send the password key encrypted with public key to applet
-(vii) Applet will then decrypt the password key with his private key and save it safely in EPROM using standard API
+(b) Card functions during use:
+  (i)
+
 
 ## Security Issues found in the Applet:
 1. Applet is using standard API of JavaCard cryptographic API rather than own implemented API.
