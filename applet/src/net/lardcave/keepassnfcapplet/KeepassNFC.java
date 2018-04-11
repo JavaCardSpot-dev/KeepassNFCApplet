@@ -30,15 +30,15 @@ public class KeepassNFC extends Applet {
 	final static short RSA_KEYLENGTH               = KeyBuilder.LENGTH_RSA_2048;   // RSA key length 2048
 
 	// Definining the variables
-	private KeyPair card_key;
-	private AESKey password_key;
-	private AESKey transaction_key;
+	private KeyPair card_key =null;
+	private AESKey password_key =null;
+	private AESKey transaction_key =null;
 
-	private Cipher card_cipher;
-	private Cipher password_cipher;
-	private Cipher transaction_cipher;
+	private Cipher card_cipher =null;
+	private Cipher password_cipher =null;
+	private Cipher transaction_cipher =null;
 
-	private byte[] scratch_area;	// space to store the keys or data at different times during encryption/decryption
+	private byte[] scratch_area = null;	// space to store the keys or data at different times during encryption/decryption
 	private byte[] aes_key_temporary;
 	private boolean card_cipher_initialised;	// Initialisation of key to maintain the randomness in the cipher data 
 
