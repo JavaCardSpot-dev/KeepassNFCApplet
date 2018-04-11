@@ -9,6 +9,25 @@ KeePass is a famous software about password managerment.
 
 KeepassNFC applet is meant to use the card with NFC (near field communication) technology which enables the user with contactless use of the card installed with this applet.
 
+## Security Issues:
+1. Applet is using standard API of JavaCard cryptographic API rather than own implemented API.
+Absence of state management: Presently, there is check for handling the error states during the failure of following important processes in the applet on card:
+    Card Key pair generation and transfer of public key & its parameters (modulus & exponent) to user
+    Initialization or Writing card keys in scratch Area
+    Receiving password key in scratch area and its initialization with IV for decryption
+    Receiving transaction key in scratch area and its initialization with IV for decryption
+    Verify length of data to be decrypted 
+
+2. Absence of intialisation and clearing of sensitive data: Sensitive data must be initialized at the beginning of each session and cleared when not needed anymore. The data can be cleared at the end of sessions using the CLEAR_ON_DESELECT directive and/or rewriting the content with random data/zeroes.
+    
+3. No use of custom exceptions: Missing try/catch and throw constructs (except for the standard INS_NOT_SUPPORTED) which helps to obtain useful information during development.
+
+4. No fault induction check: Applet doesn’t check for invalid CLA in process(), and it only checks for valid CLA before switching on the instruction value, such that if CLA doesn’t match or an error occurs, the applet cannot manage the state. Also, other checks aren’t performed with redundancy to prevent the tampering with the instruction pointer of the smartcard.
+
+5. No authentication and authorisation mechanisms: Applet doesn’t check in any way the authorisation to access the applet to use the password in the card, nor to edit the current configuration of the card. A method of authentication by the standard PIN implemented by JavaCard can be included, with particular attention on the first setup and erasing of data when problems occur.
+    
+6. No memory intialisation: Many primitives and byte arrays are not initialised, thus they may contain garbage values. These can be initialised to NULL.
+
 ## Compiling the project
 This project has two different build systems that can be used. [JCIDE](#jcide) is the one originally used, the Gradle integration has been added later using the [template](https://github.com/crocs-muni/javacard-gradle-template-edu) from [@crocs-muni](https://github.com/crocs-muni/).
 
