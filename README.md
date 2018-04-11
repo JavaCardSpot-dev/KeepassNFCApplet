@@ -9,7 +9,7 @@ KeePass is a famous software about password managerment.
 
 KeepassNFC applet is meant to use the card with NFC (near field communication) technology which enables the user with contactless use of the card installed with this applet.
 
-## Security Issues:
+## Security Issues found in the Applet:
 1. Applet is using standard API of JavaCard cryptographic API rather than own implemented API.
 Absence of state management: Presently, there is check for handling the error states during the failure of following important processes in the applet on card:
     Card Key pair generation and transfer of public key & its parameters (modulus & exponent) to user
