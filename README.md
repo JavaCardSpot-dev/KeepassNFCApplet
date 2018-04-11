@@ -9,6 +9,51 @@ KeePass is a famous software about password managerment.
 
 KeepassNFC applet is meant to use the card with NFC (near field communication) technology which enables the user with contactless use of the card installed with this applet.
 
+## Compiling the project
+This project has two different build systems that can be used. [JCIDE](#jcide) is the one originally used, the Gradle integration has been added later using the [template](https://github.com/crocs-muni/javacard-gradle-template-edu) from [@crocs-muni](https://github.com/crocs-muni/).
+
+### [JCIDE](http://www.javacardos.com/tools/index.html?ws=github&prj=KeepassNFC#JCIDE)
+A project file (KeepassNFC.jcproj) has been created for the users of [JCIDE](http://www.javacardos.com/tools/index.html?ws=github&prj=KeepassNFC#JCIDE). If you have already installed the [JCIDE](http://www.javacardos.com/tools/index.html?ws=github&prj=KeepassNFC#JCIDE), only a simple double-clicking on this file is needed to start the development environment.
+You can view, edit, build or debug the code with [JCIDE](http://www.javacardos.com/tools/index.html?ws=github&prj=KeepassNFC#JCIDE), a powerful Javacard Integrated Development Environment.
+You can use [pyApdutool](http://javacardos.com/tools/index.html?ws=github&prj=KeepassNFC#pyApduTool) to download and install the applet, please reference the [topic](http://javacardos.com/javacardforum/viewtopic.php?f=3&t=38&ws=github&prj=KeepassNFC) in the [JavaCardOS](http://javacardos.com/javacardforum/?ws=github&prj=KeepassNFC) for the operation detail.
+
+### Gradle
+The configuration gives you the ability to compile and convert easily of applet cap files, it has support for easy tests creation, including test coverage.
+Also, it provides integration with Travis Continuous Integration platform, with the means to execute on both real cards and [JCardSim.org](https://jcardsim.org/) simulator.
+
+This build configuration can be easily used with all the IDEs that gives integration with Gradle (IntelliJ, NetBeans, Eclipse...).
+
+After recursively cloning the repository (to gather all the JavaCard SKDs), you can choose the desired JavaCard SDK to use by setting the `JCSDK` environment variable (by default it is empty, and the minimum required SDK version will be used). Then simply run
+```
+./gradlew buildJavaCard --info
+```
+to get the `.cap` file.
+
+## Known compatibilities
+It should work on [JC30M48](http://www.javacardos.com/store/javacard-jc30m48cr.php?ws=github&prj=KeepassNFC), the downloading and installation have been tested on this card.
+
+## Maintainers
+The original creator of the project is the [JavaCardOS](http://www.javacardos.com/) community.
+
+As the initial [notice](#important) explains, this project will be maintained by students of the Masaryk University about until June 2018.
+
+##  Usage
+The Applet is able to decrypt the database at user’s wish with the use of password key stored in the card and IV sent by user.
+The applet functionality can broadly classified into two categories:
+(a) Card Configuration
+(b) Card Usage
+
+## Card Configuration
+
+(i) As a first step ,the user will send APDU to applet for generation of 2048b RSA key. The format of APDU is [0x75] - Generate Card Key
+    This method doesn’t expect any input, and if called it will reset the internal key, setting a flag indicating that the cipher isn’t initialized.   
+(ii) The applet will ##then generate the key pair and send the output APDU contains three bytes indicating (1) the success of the operation and (2-3) the length of the internal key.
+(iii)User will then request for public key from applet
+(iv) Applet will then sent the public key back to user
+(v) User will then generate the password key using his password 
+(vi)User will then send the password key encrypted with public key to applet
+(vii) Applet will then decrypt the password key with his private key and save it safely in EPROM using standard API
+
 ## Security Issues found in the Applet:
 1. Applet is using standard API of JavaCard cryptographic API rather than own implemented API.
 Absence of state management: Presently, there is check for handling the error states during the failure of following important processes in the applet on card:
@@ -41,49 +86,3 @@ Absence of state management: Presently, there is check for handling the error st
 
 6. Side channel attacks
 The applet must be thoroughly tested if susceptible to side channel attacks, for example an adversary could perform a timing attack on calculations performed by RSA algorithm for generation of public and private key using modulus exponent form.
-
-## Compiling the project
-This project has two different build systems that can be used. [JCIDE](#jcide) is the one originally used, the Gradle integration has been added later using the [template](https://github.com/crocs-muni/javacard-gradle-template-edu) from [@crocs-muni](https://github.com/crocs-muni/).
-
-### [JCIDE](http://www.javacardos.com/tools/index.html?ws=github&prj=KeepassNFC#JCIDE)
-A project file (KeepassNFC.jcproj) has been created for the users of [JCIDE](http://www.javacardos.com/tools/index.html?ws=github&prj=KeepassNFC#JCIDE). If you have already installed the [JCIDE](http://www.javacardos.com/tools/index.html?ws=github&prj=KeepassNFC#JCIDE), only a simple double-clicking on this file is needed to start the development environment.
-You can view, edit, build or debug the code with [JCIDE](http://www.javacardos.com/tools/index.html?ws=github&prj=KeepassNFC#JCIDE), a powerful Javacard Integrated Development Environment.
-You can use [pyApdutool](http://javacardos.com/tools/index.html?ws=github&prj=KeepassNFC#pyApduTool) to download and install the applet, please reference the [topic](http://javacardos.com/javacardforum/viewtopic.php?f=3&t=38&ws=github&prj=KeepassNFC) in the [JavaCardOS](http://javacardos.com/javacardforum/?ws=github&prj=KeepassNFC) for the operation detail.
-
-### Gradle
-The configuration gives you the ability to compile and convert easily of applet cap files, it has support for easy tests creation, including test coverage.
-Also, it provides integration with Travis Continuous Integration platform, with the means to execute on both real cards and [JCardSim.org](https://jcardsim.org/) simulator.
-
-This build configuration can be easily used with all the IDEs that gives integration with Gradle (IntelliJ, NetBeans, Eclipse...).
-
-After recursively cloning the repository (to gather all the JavaCard SKDs), you can choose the desired JavaCard SDK to use by setting the `JCSDK` environment variable (by default it is empty, and the minimum required SDK version will be used). Then simply run
-```
-./gradlew buildJavaCard --info
-```
-to get the `.cap` file.
-
-## Known compatibilities
-It should work on [JC30M48](http://www.javacardos.com/store/javacard-jc30m48cr.php?ws=github&prj=KeepassNFC), the downloading and installation have been tested on this card.
-
-##  Usage
-The Applet is able to decrypt the database at user’s wish with the use of password key stored in the card and IV sent by user.
-The applet functionality can broadly classified into two categories:
-(a) Card Configuration
-(b) Card Usage
-
-## Card Configuration
-
-(i) As a first step ,the user will send APDU to applet for generation of 2048b RSA key. The format of APDU is [0x75] - Generate Card Key
-    This method doesn’t expect any input, and if called it will reset the internal key, setting a flag indicating that the cipher isn’t initialized.   
-(ii) The applet will ##then generate the key pair and send the output APDU contains three bytes indicating (1) the success of the operation and (2-3) the length of the internal key.
-(iii)User will then request for public key from applet
-(iv) Applet will then sent the public key back to user
-(v) User will then generate the password key using his password 
-(vi)User will then send the password key encrypted with public key to applet
-(vii) Applet will then decrypt the password key with his private key and save it safely in EPROM using standard API
-
-
-## Maintainers
-The original creator of the project is the [JavaCardOS](http://www.javacardos.com/) community.
-
-As the initial [notice](#important) explains, this project will be maintained by students of the Masaryk University about until June 2018.
