@@ -340,11 +340,17 @@ public class KeepassNFC extends Applet {
 		short length = apdu.setIncomingAndReceive();
 
 		short offset = Util.getShort(buffer, ISO7816.OFFSET_CDATA);
+            if ((short)scratch_area.length > (short)(offset + length - 2)){
 		Util.arrayCopy(buffer, (short)(ISO7816.OFFSET_CDATA + 2), scratch_area, offset, (short)(length - 2));
 
 		buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
 
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+            }
+            else {
+                buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
+		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+            }
 	}
 
 // method to decrypt the AES keys which are encrypted with RSA pub key and been sent by the user application to the applet
