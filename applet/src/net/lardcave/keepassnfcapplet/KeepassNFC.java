@@ -208,26 +208,26 @@ public class KeepassNFC extends Applet {
 		 * Out: success / fail (one byte)
 		*/
               byte[] buffer = apdu.getBuffer();
-		short length  = apdu.setIncomingAndReceive();
-            if (scratch_area.length>=length){
+              short length  = apdu.setIncomingAndReceive();
+            if (scratch_area.length>=length){   //the length of received key is compared for scratch area overflow
 		decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
-            if (aes_key_temporary.length!=0){
+            if (aes_key_temporary.length!=0){   //check for key if it exist
 		password_key.setKey(aes_key_temporary, (short)0);
 		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 	        Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1); //send response back
             }
-            else {
+            else {                  // throw error for failure to receive key
                 buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
             }
             }
-            else {
+            else {                  // throw error for scratch area overflow
                 buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
             }
-	}  
+	}
 
 
 	protected void prepareDecryption(APDU apdu)
