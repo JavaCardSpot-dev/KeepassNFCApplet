@@ -295,6 +295,7 @@ public class KeepassNFC extends Applet {
 		boolean succeeded = false;
 
 		short decrypted = 0;
+                if (scratch_area.length>=length){       //check if length fits in scratch area
 		try {
 			if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {	// Not last block;
 				decrypted = password_cipher.update(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
@@ -380,14 +381,14 @@ public class KeepassNFC extends Applet {
 		short length = apdu.setIncomingAndReceive();
 
 		short offset = Util.getShort(buffer, ISO7816.OFFSET_CDATA);
-            if ((short)scratch_area.length > (short)(offset + length - 2)){
+            if ((short)scratch_area.length > (short)(offset + length - 2)){     //check the data length not more than scratch area
 		Util.arrayCopy(buffer, (short)(ISO7816.OFFSET_CDATA + 2), scratch_area, offset, (short)(length - 2));
 
 		buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
 
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
             }
-            else {
+            else {      // throw error if failed
                 buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
             }
