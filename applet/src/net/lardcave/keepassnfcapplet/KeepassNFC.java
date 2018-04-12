@@ -267,14 +267,21 @@ public class KeepassNFC extends Applet {
 			} else {										// Last block;
 				decrypted = password_cipher.doFinal(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
 			}
-			if(decrypted > 0) {
+			if(decrypted > 0) 
+                        {  if((short)-decrypted <(short)0)
+                        
+                            {
 				/* We decrypted the blocks successfully, now re-encrypt with the transaction key. */
 				short encrypted = transaction_cipher.update(scratch_area, (short)0, decrypted, buffer, (short)(ISO7816.OFFSET_CDATA + 1));
-				if(encrypted > 0) {
+				if(encrypted > 0)
+                                  {  if((short)-encrypted <(short)0)
+                                    {
 					/* We encrypted the new block successfully. */
 					succeeded = true;
-				}
-			}
+                                    }
+                                  }
+                            }
+                       }
 
 			buffer[RESPONSE_STATUS_OFFSET] = succeeded ? RESPONSE_SUCCEEDED : RESPONSE_FAILED;
 		} catch (CryptoException e) {
