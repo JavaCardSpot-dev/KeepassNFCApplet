@@ -165,14 +165,14 @@ public class KeepassNFC extends Applet {
 			short offset = Util.getShort(buffer, PUBKEY_REQUEST_OFFSET_IDX);
 
 			if(offset == (short)0) 
-                        {
+                        {   // Fault Induction check
                             if((short)-offset == (short)0)
                             {
 				// Initial modulus request -- store public key in scratch buffer.
 				RSAPublicKey key = (RSAPublicKey) card_key.getPublic();
 				rsa_modulus_length = key.getModulus(scratch_area, (short)0);
 			    }
-                     }
+                        }
                    
 			// calculating the length of key
 			short amountToSend = (short)(rsa_modulus_length - offset);
@@ -181,10 +181,16 @@ public class KeepassNFC extends Applet {
 			if(amountToSend > PUBKEY_MAX_SEND_LENGTH)
 				amountToSend = PUBKEY_MAX_SEND_LENGTH;
 			if(amountToSend < 0)
-				amountToSend = 0;
+                        {  //Fault Induction check
+                            if((short)-amountToSend >0)
+                        
+                            {	amountToSend = 0;
+                            
+                            }
+                        }
                         
 			Util.arrayCopy(scratch_area, offset, buffer, PUBKEY_RESPONSE_MODULUS_IDX, amountToSend);
-
+                        
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 			Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, amountToSend);
 			Util.setShort(buffer, PUBKEY_RESPONSE_REMAIN_IDX, (short)(rsa_modulus_length - offset - amountToSend));
@@ -233,6 +239,7 @@ public class KeepassNFC extends Applet {
 		short length  = apdu.setIncomingAndReceive();
 
 		if(length == 32) {
+                    // Fault Induction check
                     if((short)-length == (short)-32) {
 			decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
 			transaction_key.setKey(aes_key_temporary, (short)0);
