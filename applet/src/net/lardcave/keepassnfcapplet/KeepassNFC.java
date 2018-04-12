@@ -330,12 +330,18 @@ public class KeepassNFC extends Applet {
 
 		card_cipher_initialised = false;
 		card_key.genKeyPair();
-
-		buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
+                if (card_key != null)
+                {buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
 		buffer[ISO7816.OFFSET_CDATA + 1] = (RSA_KEYLENGTH >> 8) & 0xFF;
 		buffer[ISO7816.OFFSET_CDATA + 2] = (RSA_KEYLENGTH & 0xFF);
 
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)3);
+                }
+                else
+                {
+                  buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED; 
+                  apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+                }
 	}
 
 	protected void writeToScratch(APDU apdu)
