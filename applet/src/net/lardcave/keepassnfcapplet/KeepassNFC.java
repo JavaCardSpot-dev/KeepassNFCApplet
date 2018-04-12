@@ -156,27 +156,42 @@ public class KeepassNFC extends Applet {
 		*/
 		short lengthOut = 0;
 		byte command = buffer[ISO7816.OFFSET_CDATA];
-
+                //getting public key exponent
 		if(command == PUBKEY_GET_EXPONENT) {
-			// get exponent
+			// getting the card public key
 			RSAPublicKey key = (RSAPublicKey) card_key.getPublic();
-			short exponentLength = key.getExponent(buffer, PUBKEY_RESPONSE_EXPONENT_IDX);
-			Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, exponentLength);
-			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+                        
+                        if(key!=null)
+                        {   // getting the exponent
+                            short exponentLength = key.getExponent(buffer, PUBKEY_RESPONSE_EXPONENT_IDX);
+                            Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, exponentLength);
+                            buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+                        
 
 			lengthOut = (short)(exponentLength + PUBKEY_RESPONSE_EXPONENT_OFFSET);
-		} else if (command == PUBKEY_GET_MODULUS) {
+                        }
+                        else
+                        {
+                          buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+                          
+                        }
+		} else if (command == PUBKEY_GET_MODULUS) //getting the modulus
+                {
 			short offset = Util.getShort(buffer, PUBKEY_REQUEST_OFFSET_IDX);
-
 			if(offset == (short)0) 
                         {   // Fault Induction check
                             if((short)-offset == (short)0)
                             {
 				// Initial modulus request -- store public key in scratch buffer.
 				RSAPublicKey key = (RSAPublicKey) card_key.getPublic();
+                                if(key!=null)
+                                {
 				rsa_modulus_length = key.getModulus(scratch_area, (short)0);
-			    }
-                        }
+			        }
+                                else
+                                { buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+                                }
+                           }
                    
 			// calculating the length of key
 			short amountToSend = (short)(rsa_modulus_length - offset);
@@ -197,15 +212,15 @@ public class KeepassNFC extends Applet {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 			Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, amountToSend);
 			Util.setShort(buffer, PUBKEY_RESPONSE_REMAIN_IDX, (short)(rsa_modulus_length - offset - amountToSend));
-
 			lengthOut = (short)(amountToSend + PUBKEY_RESPONSE_MODULUS_OFFSET);
-		} else {
+		} else 
+                        {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-		}
+                        }
                 // sending the length of key to user
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, lengthOut);
 	}
-
+        }
 	//method to share AES password key required for decryption of block thru PKI means
 	protected void setPasswordKey(APDU apdu)
 	{
@@ -313,7 +328,7 @@ public class KeepassNFC extends Applet {
 	{
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
-
+                
 		buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
 		buffer[ISO7816.OFFSET_CDATA + 1] = VERSION;
 
@@ -330,6 +345,8 @@ public class KeepassNFC extends Applet {
 
 		card_cipher_initialised = false;
 		card_key.genKeyPair();
+                
+                // checking card keys are generated correctly or not
                 if (card_key != null)
                 {buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
 		buffer[ISO7816.OFFSET_CDATA + 1] = (RSA_KEYLENGTH >> 8) & 0xFF;
