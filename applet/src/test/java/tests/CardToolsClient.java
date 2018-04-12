@@ -76,6 +76,32 @@ public class CardToolsClient extends AbstractClient {
 		throwOnCommandException = throwOnException;
 	}
 
+	@Override
+	protected short getShort(byte[] buffer, int idx)
+	{
+		return Util.getShort(buffer, idx);
+	}
+
+	@Override
+	protected void putShort(byte[] args, int idx, short val)
+	{
+		byte[] tmp = Util.shortToByteArray(val);
+		args[idx] = tmp[0];
+		args[idx + 1] = tmp[1];
+	}
+
+	@Override
+	public String toHex(byte[] data)
+	{
+		return Util.toHex(data);
+	}
+
+	@Override
+	public byte[] decodeHexString(String s)
+	{
+		return Util.hexStringToByteArray(s);
+	}
+
 	public ResponseAPDU sendAPDU(CardChannel channel, final CommandAPDU request) throws CardException
 	{
 		ResponseAPDU resp = channel.transmit(request);

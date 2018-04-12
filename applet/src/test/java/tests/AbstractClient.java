@@ -434,7 +434,7 @@ abstract public class AbstractClient {
 
 	abstract public ResponseAPDU sendAPDU(CardChannel channel, final CommandAPDU apdu) throws CardException;
 
-	public static String toHex(byte[] data)
+	public String toHex(byte[] data)
 	{
 		StringBuilder buf = new StringBuilder();
 
@@ -469,7 +469,7 @@ abstract public class AbstractClient {
 		throw new RuntimeException("Not a hex character");
 	}
 
-	public static byte[] decodeHexString(String s)
+	public byte[] decodeHexString(String s)
 	{
 		byte[] decoded = new byte[8]; // initial length
 
