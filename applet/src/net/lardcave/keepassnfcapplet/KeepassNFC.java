@@ -164,11 +164,15 @@ public class KeepassNFC extends Applet {
 		} else if (command == PUBKEY_GET_MODULUS) {
 			short offset = Util.getShort(buffer, PUBKEY_REQUEST_OFFSET_IDX);
 
-			if(offset == (short)0) {
+			if(offset == (short)0) 
+                        {
+                            if((short)-offset == (short)0)
+                            {
 				// Initial modulus request -- store public key in scratch buffer.
 				RSAPublicKey key = (RSAPublicKey) card_key.getPublic();
 				rsa_modulus_length = key.getModulus(scratch_area, (short)0);
-			}
+			    }
+                     }
                    
 			// calculating the length of key
 			short amountToSend = (short)(rsa_modulus_length - offset);
@@ -229,6 +233,7 @@ public class KeepassNFC extends Applet {
 		short length  = apdu.setIncomingAndReceive();
 
 		if(length == 32) {
+                    if((short)-length == (short)-32) {
 			decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
 			transaction_key.setKey(aes_key_temporary, (short)0);
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
@@ -238,8 +243,11 @@ public class KeepassNFC extends Applet {
 			password_cipher.init(password_key, Cipher.MODE_DECRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 16), (short)16);
 
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-		} else { 
+                    } else { 
 			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
+                    }
+                } else { 
+                    buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
 		}
 
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
