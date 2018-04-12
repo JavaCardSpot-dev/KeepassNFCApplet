@@ -331,7 +331,7 @@ public class KeepassNFC extends Applet {
                 
 		buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
 		buffer[ISO7816.OFFSET_CDATA + 1] = VERSION;
-
+                // sending the version of Applet
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)2);
 	}
 
@@ -388,12 +388,17 @@ public class KeepassNFC extends Applet {
 	private boolean decryptWithCardKey(byte[] input, short offset, byte[] output)
 	{
 		if(!card_cipher_initialised) {
+                        // getting the private key
 			RSAPrivateCrtKey private_key = (RSAPrivateCrtKey)card_key.getPrivate();
+                        // initialising the cipher
 			card_cipher.init(private_key, Cipher.MODE_DECRYPT);
-
-			card_cipher_initialised = true;
+                        // checking of initialisation of card cipher
+                        if(card_cipher!=null)
+			  card_cipher_initialised = true;
+                        else
+                            card_cipher_initialised = false;
 		}
-
+                // performing the decryption
 		card_cipher.doFinal(input, offset, (short)(RSA_KEYLENGTH / 8), output, (short)0);
 		return true;
 	}
