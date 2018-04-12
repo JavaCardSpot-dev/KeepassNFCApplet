@@ -207,18 +207,27 @@ public class KeepassNFC extends Applet {
 		 * In: Nothing
 		 * Out: success / fail (one byte)
 		*/
-
-		byte[] buffer = apdu.getBuffer();
+              byte[] buffer = apdu.getBuffer();
 		short length  = apdu.setIncomingAndReceive();
-
+            if (scratch_area.length>=length){
 		decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
+            if (aes_key_temporary.length!=0){
 		password_key.setKey(aes_key_temporary, (short)0);
 		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+	        Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-	}
+            }
+            else {
+                buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+            }
+            }
+            else {
+                buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+            }
+	}  
 
 
 	protected void prepareDecryption(APDU apdu)
