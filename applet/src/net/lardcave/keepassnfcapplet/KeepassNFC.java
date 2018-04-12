@@ -183,7 +183,6 @@ public class KeepassNFC extends Applet {
 			if(amountToSend < 0)
                         {  //Fault Induction check
                             if((short)-amountToSend >0)
-                        
                             {	amountToSend = 0;
                             
                             }
