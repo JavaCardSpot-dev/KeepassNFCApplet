@@ -116,6 +116,10 @@ public class KeepassNFC extends Applet {
 					break;
 			}
 		}
+                else if (buffer[ISO7816.OFFSET_CLA] != CLA_CARD_KPNFC_CMD) 
+                {
+                    ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
+                }
 	}
 
 	private static final short PUBKEY_MAX_SEND_LENGTH = 120;
@@ -285,6 +289,10 @@ public class KeepassNFC extends Applet {
 					/* We encrypted the new block successfully. */
 					succeeded = true;
                                     }
+                                    else
+                                  {
+                                      succeeded=false;
+                                  }
                                   }
                             }
                        }
