@@ -1,6 +1,8 @@
 .idea
+.nb-*
 .gradle
 *.iml
+*.eml
 applet/out
 applet/build
 simulator/build
@@ -13,4 +15,3 @@ tester/out
 *~
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
-/.nb-gradle/
