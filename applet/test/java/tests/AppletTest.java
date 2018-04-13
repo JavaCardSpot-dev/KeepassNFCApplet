@@ -15,37 +15,29 @@ import javax.smartcardio.ResponseAPDU;
  * @author xsvenda, Dusan Klinec (ph4r05)
  */
 public class AppletTest {
-	private static CardToolsClient client = null;
+	private RunConfig.CARD_TYPE cardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
+	private CardToolsClient client = null;
 
 	public AppletTest()
 	{
 	}
 
-	@BeforeClass
-	public static void setUpClass() throws Exception
+	// install test first
+	@BeforeGroups(groups = {"Installing"})
+	public void setUpInstalling() throws Exception
 	{
 		client = new CardToolsClient(KeepassNFC.class, "F0375472804FD5FA0F243E42C1B63825");
 		client.setThrowOnCommandException(false);
-		client.setCardType(RunConfig.CARD_TYPE.JCARDSIMLOCAL);
+		client.setCardType(cardType);
 	}
 
-	@AfterClass
-	public static void tearDownClass() throws Exception
+	@AfterGroups(groups = {"Installing"})
+	public void tearDownInstalling() throws Exception
 	{
-		// client.Disconnect(true);
+		client.getCardMngr().Disconnect(true);
 	}
 
-	@BeforeMethod
-	public void setUpMethod() throws Exception
-	{
-	}
-
-	@AfterMethod
-	public void tearDownMethod() throws Exception
-	{
-	}
-
-	// Install Test
+	// Real Install Test
 	@Test(groups = {"Installing"})
 	public void installTest() throws Exception
 	{
@@ -53,8 +45,24 @@ public class AppletTest {
 		Assert.assertEquals(cardMngr.getAppletId(), client.getAppletAIDByte());
 	}
 
+	// initialization before every method after install test
+	@BeforeMethod(dependsOnGroups = {"Installing"})
+	public void setUpMethod() throws Exception
+	{
+		client = new CardToolsClient(KeepassNFC.class, "F0375472804FD5FA0F243E42C1B63825");
+		client.setThrowOnCommandException(false);
+		client.setCardType(cardType);
+		client.installSelectApplet();
+	}
+
+	@AfterMethod(dependsOnGroups = {"Installing"})
+	public void tearDownMethod() throws Exception
+	{
+		client.getCardMngr().Disconnect(true);
+	}
+
 	// Simulator/dummy test
-	@Test(groups = {"Installing"}, priority = 1)
+	@Test(dependsOnGroups = {"Installing"}, priority = 1)
 	public void dummyCommand() throws Exception
 	{
 		final ResponseAPDU responseAPDU = client.dummyCommand();
