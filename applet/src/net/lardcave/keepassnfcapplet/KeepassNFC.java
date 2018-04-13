@@ -42,8 +42,6 @@ public class KeepassNFC extends Applet {
 	private byte[] aes_key_temporary = null;
 	private boolean card_cipher_initialised = true;    // Initialisation of key to maintain the randomness in the cipher data
 
-	private short rsa_modulus_length = 0; // only used when sending (partial) modulus in getCardPubKey()
-
 	//method to generate the three keys
 	protected KeepassNFC(byte[] bArray, short bOffset, byte bLength)
 	{
@@ -132,81 +130,92 @@ public class KeepassNFC extends Applet {
 	private static final short PUBKEY_RESPONSE_EXPONENT_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_EXPONENT_OFFSET);
 	private static final short PUBKEY_RESPONSE_MODULUS_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_MODULUS_OFFSET);
 
-	//method to send pulic key (exponent & modulus) to the user application
+	/**
+	 * Method to send Public Key (exponent & modulus) to the user application.
+	 * <p>
+	 * response APDU (in case of unrecognized input ):
+	 * * 1 byte: RESPONSE_FAILED
+	 * response APDU (for exponent request):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * 2 bytes: length of exponent
+	 * * n bytes: exponent (up to 4 bytes)
+	 * response APDU (for modulus request):
+	 * * 1 byte: REPONSE_SUCCEEDED
+	 * * 2 bytes: number of bytes sent this time
+	 * * 2 bytes: bytes remaining to send
+	 * * n bytes: modulus (up to MAX_PUBKEY_SEND_LENGTH bytes)
+	 *
+	 * @param apdu Request APDU formatted this way:
+	 *             * 1 byte: type of request -- PUBKEY_GET_EXPONENT or PUBKEY_GET_MODULUS
+	 *             * 2 bytes: start byte (if requesting modulus-continue) or 00 00 (otherwise)
+	 */
 	protected void getCardPubKey(APDU apdu)
 	{
 		byte[] buffer = apdu.getBuffer();   // buffer to hold the header
-		short length = apdu.setIncomingAndReceive();
+		apdu.setIncomingAndReceive();
 
-		/* in:
-		 *    1 byte: type of request -- PUBKEY_GET_EXPONENT or PUBKEY_GET_MODULUS
-		 *    2 bytes: start byte (if requesting modulus-continue) or 00 00 (otherwise)
-		 * out (for exponent):
-		 *    1 byte: RESPONSE_SUCCEEDED
-		 *    2 bytes: length of exponent
-		 *    n bytes: exponent (up to 4 bytes)
-		 * out (for modulus):
-		 *    1 byte: REPONSE_SUCCEEDED
-		 *    2 bytes: number of bytes sent this time
-		 *    2 bytes: bytes remaining to send
-		 *    n bytes: modulus (up to MAX_PUBKEY_SEND_LENGTH bytes)
-		 *
-		 * The first PUBKEY_GET_MODULUS request must request offset 0 of the modulus.
-		 */
-		short lengthOut = 0;
+		short lengthOut = (short)1;
 		byte command = buffer[ISO7816.OFFSET_CDATA];
-		//getting public key exponent
-		if (command == PUBKEY_GET_EXPONENT) {
-			// getting the card public key
-			RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
+		short rsa_modulus_length = (short)0;
+		// getting public key exponent
+		try {
+			if (command == PUBKEY_GET_EXPONENT) {
+				// getting the card public key
+				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
 
-			if (key != null) {   // getting the exponent
 				short exponentLength = key.getExponent(buffer, PUBKEY_RESPONSE_EXPONENT_IDX);
 				Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, exponentLength);
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 
-
 				lengthOut = (short)(exponentLength + PUBKEY_RESPONSE_EXPONENT_OFFSET);
-			} else {
-				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+				// Fault Induction prevention, to prevent sending unknown buffer data
+				lengthOut = (short)(exponentLength + PUBKEY_RESPONSE_EXPONENT_OFFSET);
+			} else if (command == PUBKEY_GET_MODULUS) { //getting the modulus
+				short offset = Util.getShort(buffer, PUBKEY_REQUEST_OFFSET_IDX);
+				// Always rewrite public modulus in scratch buffer, prevents reading of arbitrary scratch_area positions
+				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
+				rsa_modulus_length = key.getModulus(scratch_area, (short)0);
 
-			}
-		} else if (command == PUBKEY_GET_MODULUS) { //getting the modulus
-			short offset = Util.getShort(buffer, PUBKEY_REQUEST_OFFSET_IDX);
-			if (offset == (short)0) {   // Fault Induction check
-				if ((short)-offset == (short)0) {
-					// Initial modulus request -- store public key in scratch buffer.
-					RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
-					if (key != null) {
-						rsa_modulus_length = key.getModulus(scratch_area, (short)0);
+				if (rsa_modulus_length != (short)0) { // prevent Fault Induction on key.getModulus
+					if ((short)-rsa_modulus_length != (short)0) { // Fault Induction check
+						// calculating the length of key
+						short amountToSend = (short)(rsa_modulus_length - offset);
+
+						// clamp amountToSend between 0 and maximum buffer length.
+						if (amountToSend > PUBKEY_MAX_SEND_LENGTH)
+							if ((short)-amountToSend < (short)-PUBKEY_MAX_SEND_LENGTH) // Fault Induction check
+								amountToSend = PUBKEY_MAX_SEND_LENGTH;
+						if (amountToSend < 0)
+							if ((short)-amountToSend > 0) // Fault Induction check
+								amountToSend = 0;
+
+						Util.arrayCopy(scratch_area, offset, buffer, PUBKEY_RESPONSE_MODULUS_IDX, amountToSend);
+
+						buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+						Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, amountToSend);
+						Util.setShort(buffer, PUBKEY_RESPONSE_REMAIN_IDX, (short)(rsa_modulus_length - offset - amountToSend));
+						lengthOut = (short)(amountToSend + PUBKEY_RESPONSE_MODULUS_OFFSET);
+						// Fault Induction prevention, to prevent sending unknown buffer data
+						lengthOut = (short)(amountToSend + PUBKEY_RESPONSE_MODULUS_OFFSET);
 					} else {
 						buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+						lengthOut = (short)1; // No Fault Induction considered here, would be the second in short time
 					}
+				} else {
+					buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+					lengthOut = (short)1; // No Fault Induction considered here, would be the second in short time
 				}
-
-				// calculating the length of key
-				short amountToSend = (short)(rsa_modulus_length - offset);
-
-				// clamp amountToSend between 0 and maximum buffer length.
-				if (amountToSend > PUBKEY_MAX_SEND_LENGTH)
-					amountToSend = PUBKEY_MAX_SEND_LENGTH;
-				if (amountToSend < 0) {  //Fault Induction check
-					if ((short)-amountToSend > 0) {
-						amountToSend = 0;
-
-					}
-				}
-
-				Util.arrayCopy(scratch_area, offset, buffer, PUBKEY_RESPONSE_MODULUS_IDX, amountToSend);
-
-				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-				Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, amountToSend);
-				Util.setShort(buffer, PUBKEY_RESPONSE_REMAIN_IDX, (short)(rsa_modulus_length - offset - amountToSend));
-				lengthOut = (short)(amountToSend + PUBKEY_RESPONSE_MODULUS_OFFSET);
 			} else {
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+				lengthOut = (short)1;
+				lengthOut = (short)1; // Fault Induction prevention, to prevent sending unknown buffer data
 			}
-			// sending the length of key to user
+		} catch (CryptoException e) {
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			lengthOut = (short)1;
+			lengthOut = (short)1; // Fault Induction prevention, to prevent sending unknown buffer data
+			ISOException.throwIt(e.getReason());
+		} finally {
 			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, lengthOut);
 		}
 	}
