@@ -30,7 +30,7 @@ After recursively cloning the repository (to gather all the JavaCard SKDs), you 
 to get the `.cap` file.
 
 ## Known compatibilities
-It should work on [JC30M48](http://www.javacardos.com/store/javacard-jc30m48cr.php?ws=github&prj=KeepassNFC), the downloading and installation have been tested on this card.
+Until [701cdfc](https://github.com/JavaCardSpot-dev/KeepassNFCApplet/commit/701cdfc89de7831d23bb91bf415e1e20b1ee72c4) it should work on [JC30M48](http://www.javacardos.com/store/javacard-jc30m48cr.php?ws=github&prj=KeepassNFC), the downloading and installation have been tested on this card.
 
 ## Maintainers
 The original creator of the project is the [JavaCardOS](http://www.javacardos.com/) community.
