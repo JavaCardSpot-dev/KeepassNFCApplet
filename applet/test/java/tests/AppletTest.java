@@ -33,7 +33,7 @@ public class AppletTest {
 	}
 
 	@AfterGroups(groups = {"Installing"})
-	public void tearDownInstalling() throws Exception
+	public void tearDownClient() throws Exception
 	{
 		client.getCardMngr().Disconnect(true);
 	}
@@ -51,16 +51,14 @@ public class AppletTest {
 	@BeforeMethod(dependsOnGroups = {"Installing"})
 	public void setUpMethod() throws Exception
 	{
-		client = new CardToolsClient(KeepassNFC.class, "F0375472804FD5FA0F243E42C1B63825");
-		client.setThrowOnCommandException(false);
-		client.setCardType(cardType);
+		setUpInstalling();
 		client.installSelectApplet();
 	}
 
 	@AfterMethod(dependsOnGroups = {"Installing"})
 	public void tearDownMethod() throws Exception
 	{
-		client.getCardMngr().Disconnect(true);
+		tearDownClient();
 	}
 
 	// Simulator/dummy test
