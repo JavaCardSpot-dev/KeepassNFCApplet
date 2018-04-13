@@ -42,6 +42,7 @@ public class AppletTest {
 	@Test(groups = {"Installing"})
 	public void installTest() throws Exception
 	{
+		Assert.assertNotNull(client.getCardChannel());
 		final CardManager cardMngr = client.installSelectApplet();
 		Assert.assertEquals(cardMngr.getAppletId(), client.getAppletAIDByte());
 	}
