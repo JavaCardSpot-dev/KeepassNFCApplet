@@ -10,10 +10,10 @@ import javax.smartcardio.ResponseAPDU;
 import java.security.interfaces.RSAPublicKey;
 
 /**
- * Example test class for the applet
+ * Test class for KeepassNFC applet
  * Note: If simulator cannot be started try adding "-noverify" JVM parameter
  *
- * @author xsvenda, Dusan Klinec (ph4r05)
+ * @author McCio
  */
 public class AppletTest {
 	private RunConfig.CARD_TYPE cardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
