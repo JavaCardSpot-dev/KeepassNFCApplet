@@ -295,7 +295,6 @@ public class KeepassNFC extends Applet {
 		boolean succeeded = false;
 
 		short decrypted = 0;
-                if (scratch_area.length>=length){       //check if length fits in scratch area
 		try {
 			if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {	// Not last block;
 				decrypted = password_cipher.update(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
