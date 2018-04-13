@@ -82,7 +82,6 @@ The failure is set if the length of the incoming buffer data is not 32. Those by
 in order: 16 bytes for the transaction cipher; 16 bytes for the password cipher. 
 Both IVs are in plaintext and without MAC integrity.
 
-
 ## Security Issues found in the Applet:
 1. Applet is using standard API of JavaCard cryptographic API rather than own implemented API.
 Absence of state management: Presently, there is check for handling the error states during the failure of following important processes in the applet on card:
