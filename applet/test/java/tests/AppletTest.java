@@ -7,6 +7,7 @@ import org.junit.Assert;
 import org.testng.annotations.*;
 
 import javax.smartcardio.ResponseAPDU;
+import java.security.interfaces.RSAPublicKey;
 
 /**
  * Example test class for the applet
@@ -71,5 +72,14 @@ public class AppletTest {
 		Assert.assertNotNull(responseAPDU.getBytes());
 	}
 
-	//@Test(dependsOnGroups = {"Installing"})
+	@Test(dependsOnGroups = {"Installing"})
+	public void setupNewKey() throws Exception
+	{
+		client.generateCardKey();
+		RSAPublicKey key = client.getCardPubKey(client.getCardChannel());
+		Assert.assertEquals("RSA", key.getAlgorithm());
+		Assert.assertEquals("X.509", key.getFormat());
+		Assert.assertEquals(2048, key.getModulus().bitLength());
+		Assert.assertTrue(key.getPublicExponent().isProbablePrime(10));
+	}
 }
