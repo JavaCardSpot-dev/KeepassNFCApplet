@@ -3,7 +3,6 @@ package tests;
 import cardTools.CardManager;
 import cardTools.RunConfig;
 import cardTools.Util;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.smartcardio.*;
 import java.util.ArrayList;
@@ -225,7 +224,7 @@ public class CardToolsClient extends AbstractClient {
 	@Override
 	public CardTerminal getFirstCardTerminal() throws CardException
 	{
-		throw new NotImplementedException();
+		throw new UnsupportedOperationException();
 	}
 
 }
