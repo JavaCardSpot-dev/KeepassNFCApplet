@@ -82,4 +82,29 @@ public class AppletTest {
 		Assert.assertEquals(2048, key.getModulus().bitLength());
 		Assert.assertTrue(key.getPublicExponent().isProbablePrime(10));
 	}
+
+	@Test(dependsOnGroups = {"Configuring"})
+	public void setPasswordKey() throws Exception
+	{
+		client.generateCardKey();
+		boolean passwordSet = client.setNewPasswordKey("ASD");
+		Assert.assertEquals(true, passwordSet);
+	}
+
+	@Test(dependsOnGroups = {"Configuring"})
+	public void setDefaultPasswordKey() throws Exception
+	{
+		client.useDefaultKey = true;
+		client.generateCardKey();
+		boolean passwordSet = client.setNewPasswordKey();
+		Assert.assertEquals(true, passwordSet);
+	}
+
+	@Test(dependsOnGroups = {"Configuring"})
+	public void setRandomPasswordKey() throws Exception
+	{
+		client.generateCardKey();
+		boolean passwordSet = client.setNewPasswordKey();
+		Assert.assertEquals(true, passwordSet);
+	}
 }

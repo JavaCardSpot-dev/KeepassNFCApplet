@@ -18,7 +18,6 @@ import java.util.List;
 
 @SuppressWarnings({"WeakerAccess", "Duplicates"})
 abstract public class AbstractClient {
-	public String passwordKeyString;
 	public boolean useDefaultKey;
 	public String testDataString;
 	public List<String> command = new ArrayList<>();
@@ -54,27 +53,16 @@ abstract public class AbstractClient {
 	public static final byte OFFSET_DATA = 0x05;
 	public static final byte HEADER_LENGTH = 0x05;
 
+	AbstractClient() {
+		random = new SecureRandom();
+	}
+
 	// AID of the KPNFC decryptor: f0 37 54 72  80 4f d5 fa  0f 24 3e 42  c1 b6 38 25
 	public void run() throws CardException
 	{
 		if (command.size() == 0) {
 			System.err.println("Specify a command.");
 			return;
-		}
-
-		random = new SecureRandom();
-
-		passwordKey = new byte[16];
-
-		if (useDefaultKey) {
-			System.arraycopy(TEST_PASSWORD_KEY, 0, passwordKey, 0, passwordKey.length);
-		} else {
-			if (passwordKeyString != null) {
-				passwordKey = decodeHexString(passwordKeyString);
-			} else {
-				passwordKey = randomBytes(16);
-				//System.out.println("Chose random password key: " + toHex(passwordKey));
-			}
 		}
 
 		passwordKeyIv = new byte[16];
@@ -90,7 +78,7 @@ abstract public class AbstractClient {
 					generateCardKey();
 					break;
 				case "set_password_key":
-					setPasswordKey();
+					setNewPasswordKey();
 					break;
 				case "encrypt":
 					encrypt();
@@ -213,22 +201,43 @@ abstract public class AbstractClient {
 		}
 	}
 
-	public void setPasswordKey() throws CardException
+	public boolean setNewPasswordKey(byte[] passwordKey) throws CardException
 	{
+		this.passwordKey = passwordKey;
 		CardChannel channel = getCardChannel();
 		if (channel == null) {
-			return;
+			return false;
 		}
 		byte[] encryptedPasswordKey = encryptWithCardKey(channel, passwordKey);
 		if (encryptedPasswordKey == null) {
-			return;
+			return false;
 		}
 
 		writeToScratchArea(channel, encryptedPasswordKey);
 
 		byte[] command = constructApdu(INS_CARD_SET_PASSWORD_KEY);
-		sendAPDU(channel, command);
-		System.out.println("Password key set to " + toHex(passwordKey));
+		ResponseAPDU response = sendAPDU(channel, command);
+		if  (response.getData()[0] == RESPONSE_SUCCEEDED) {
+			System.out.println("Password key set to " + toHex(passwordKey));
+		}
+		return response.getData()[0] == RESPONSE_SUCCEEDED;
+	}
+
+	public boolean setNewPasswordKey(String passwordKey) throws CardException
+	{
+		return setNewPasswordKey(passwordKey.getBytes());
+	}
+
+	public boolean setNewPasswordKey() throws CardException
+	{
+		passwordKey = new byte[16];
+
+		if (useDefaultKey) {
+			System.arraycopy(TEST_PASSWORD_KEY, 0, passwordKey, 0, passwordKey.length);
+		} else {
+			passwordKey = randomBytes(16);
+		}
+		return setNewPasswordKey(passwordKey);
 	}
 
 	private byte[] sendSingleCommand(byte[] command) throws CardException
