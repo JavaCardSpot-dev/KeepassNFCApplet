@@ -22,7 +22,6 @@ public class CardToolsClient extends AbstractClient {
 	private RunConfig.CARD_TYPE cardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL; // RunConfig.CARD_TYPE.PHYSICAL for real card
 
 	private boolean throwOnCommandException = true;
-	private final static String STR_APDU_DUMMY = "00C00000080000000000000000";
 
 	private CardManager cardMngr = null;
 
@@ -197,16 +196,6 @@ public class CardToolsClient extends AbstractClient {
 		}
 
 		return sendAPDU(cardMngr, command);
-	}
-
-	public ResponseAPDU dummyCommand(CardManager cardMngr) throws Exception
-	{
-		return sendCommandWithInitSequence(cardMngr, STR_APDU_DUMMY, null);
-	}
-
-	public ResponseAPDU dummyCommand() throws Exception
-	{
-		return dummyCommand(getCardMngr());
 	}
 
 	@Override
