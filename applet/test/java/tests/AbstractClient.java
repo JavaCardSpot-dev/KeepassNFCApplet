@@ -240,6 +240,17 @@ abstract public class AbstractClient {
 		return setNewPasswordKey(passwordKey);
 	}
 
+	public void setPasswordKeyIv(byte[] passwordKeyIv) {
+		if (passwordKeyIv.length != 16)
+			throw new InvalidParameterException("Password Key IV must be 16 bytes long.");
+		this.passwordKeyIv = new byte[16];
+		System.arraycopy(passwordKeyIv, 0, this.passwordKeyIv, 0, passwordKeyIv.length);
+	}
+
+	public void setPasswordKeyIv() {
+		setPasswordKeyIv(randomBytes(16));
+	}
+
 	private byte[] sendSingleCommand(byte[] command) throws CardException
 	{
 		CardChannel channel = getCardChannel();
@@ -284,7 +295,7 @@ abstract public class AbstractClient {
 		}
 	}
 
-	public void encrypt()
+	public byte[] encrypt(byte[] input)
 	{
 		/* Encrypts test data with the password key for testing. */
 		Cipher cipher;
@@ -293,7 +304,7 @@ abstract public class AbstractClient {
 			cipher = Cipher.getInstance("AES/CBC/NoPadding");
 		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
 			e.printStackTrace();
-			return;
+			return null;
 		}
 
 		SecretKeySpec key = new SecretKeySpec(passwordKey, "AES");
@@ -302,20 +313,26 @@ abstract public class AbstractClient {
 			cipher.init(Cipher.ENCRYPT_MODE, key, iv);
 		} catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
 			e.printStackTrace();
-			return;
+			return null;
 		}
 
 		byte[] result;
 		try {
-			result = cipher.doFinal(TEST_INPUT);
+			result = cipher.doFinal(input);
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
 			e.printStackTrace();
-			return;
+			return null;
 		}
 
-		System.out.println("Original:  " + toHex(TEST_INPUT));
+		System.out.println("Original:  " + toHex(input));
 		System.out.println("IV:        " + toHex(passwordKeyIv));
 		System.out.println("Encrypted: " + toHex(result));
+		return result;
+	}
+
+	public byte[] encrypt()
+	{
+		return encrypt(TEST_INPUT);
 	}
 
 	public byte[] randomBytes(int count)

@@ -107,4 +107,14 @@ public class AppletTest {
 		boolean passwordSet = client.setNewPasswordKey();
 		Assert.assertEquals(true, passwordSet);
 	}
+
+	@Test(dependsOnGroups = {"Configuring"})
+	public void clientEncrypt() throws Exception
+	{
+		client.generateCardKey();
+		client.setNewPasswordKey();
+		client.setPasswordKeyIv();
+		client.encrypt();
+		client.encrypt("Test".getBytes());
+	}
 }
