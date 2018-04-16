@@ -7,7 +7,7 @@ import org.junit.Assert;
 import org.testng.annotations.*;
 
 import javax.crypto.IllegalBlockSizeException;
-import javax.smartcardio.ResponseAPDU;
+import javax.smartcardio.CardException;
 import java.security.interfaces.RSAPublicKey;
 
 /**
@@ -148,5 +148,27 @@ public class AppletTest {
 		byte[] encryptedData = client.encrypt(data);
 		byte[] decryptedData = client.decrypt(encryptedData);
 		Assert.assertEquals(data, decryptedData);
+	}
+
+	@Test(groups = {"Failing"})
+	public void unsupportedCLA() throws Exception
+	{
+		try {
+			byte[] apdu = client.constructApdu((byte)0x00);
+			apdu[0] = 0x00;
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("Unsupported CLA should throw errors.");
+		} catch (CardException ignored) {
+		}
+	}
+
+	@Test(groups = {"Failing"})
+	public void unsupportedINS() throws Exception
+	{
+		try {
+			client.sendAPDU(client.getCardMngr(), client.constructApdu((byte)0x00));
+			Assert.fail("Unsupported INS should throw errors.");
+		} catch (CardException ignored) {
+		}
 	}
 }
