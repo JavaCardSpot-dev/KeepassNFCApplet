@@ -88,7 +88,7 @@ abstract public class AbstractClient {
 					}
 					break;
 				case "decrypt":
-					decrypt();
+					decrypt(testData);
 					break;
 				case "version":
 					version();
@@ -329,7 +329,7 @@ abstract public class AbstractClient {
 		return theBytes;
 	}
 
-	public void decrypt() throws CardException
+	public byte[] decrypt(byte[] data) throws CardException
 	{
 		// Generate a random transaction key and IV.
 		byte[] transactionKey = randomBytes(16);
@@ -346,7 +346,7 @@ abstract public class AbstractClient {
 		if (channel != null) {
 			byte[] encryptedTransactionKey = encryptWithCardKey(channel, transactionKey);
 			if (encryptedTransactionKey == null) {
-				return;
+				return null;
 			}
 			// The encrypted transaction key is too large (256 bytes for a 2048-bit RSA key) to fit
 			// in one APDU, so write it to the card's scratch area in pieces.
@@ -359,7 +359,7 @@ abstract public class AbstractClient {
 			sendAPDU(channel, constructApdu(INS_CARD_PREPARE_DECRYPTION, transactionParameters));
 
 			// Decryption has been initialised, so ask the card to decrypt the text.
-			apdu = constructApdu(INS_CARD_DECRYPT_BLOCK, testData);
+			apdu = constructApdu(INS_CARD_DECRYPT_BLOCK, data);
 			ResponseAPDU response = sendAPDU(channel, apdu);
 
 			// This is encrypted with the transaction key, so decrypt it.
@@ -370,7 +370,9 @@ abstract public class AbstractClient {
 				}
 				System.out.println();
 			}
+			return decrypted;
 		}
+		return null;
 	}
 
 	public void version() throws CardException

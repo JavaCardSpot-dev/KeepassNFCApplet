@@ -139,4 +139,16 @@ public class AppletTest {
 			Assert.assertNotNull(encrypted);
 		}
 	}
+
+	@Test(dependsOnGroups = {"Configuring"})
+	public void cardDecrypt() throws Exception
+	{
+		client.generateCardKey();
+		client.setNewPasswordKey();
+		client.setPasswordKeyIv();
+		byte[] data = "TestDataCorrectL".getBytes();
+		byte[] encryptedData = client.encrypt(data);
+		byte[] decryptedData = client.decrypt(encryptedData);
+		Assert.assertEquals(data, decryptedData);
+	}
 }
