@@ -144,8 +144,12 @@ public class AppletTest {
 		client.generateCardKey();
 		client.setNewPasswordKey();
 		client.setPasswordKeyIv();
-		byte[] data = "TestDataCorrectL".getBytes();
+		byte[] data = "TestDataCorrectLengthThats32Byte".getBytes();
+		System.out.print(data.length);
+		System.out.println(" bytes to encrypt");
 		byte[] encryptedData = client.encrypt(data);
+		System.out.print(encryptedData.length);
+		System.out.println(" bytes to decrypt");
 		byte[] decryptedData = client.decrypt(encryptedData);
 		Assert.assertEquals(data, decryptedData);
 	}
