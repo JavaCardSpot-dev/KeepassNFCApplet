@@ -74,7 +74,8 @@ public class AppletTest {
 	@Test(dependsOnGroups = {"Installing"})
 	public void setupNewKey() throws Exception
 	{
-		client.generateCardKey();
+		short keyLength = client.generateCardKey();
+		Assert.assertEquals((2048 + 64)/8, keyLength);
 		RSAPublicKey key = client.getCardPubKey(client.getCardChannel());
 		Assert.assertEquals("RSA", key.getAlgorithm());
 		Assert.assertEquals("X.509", key.getFormat());

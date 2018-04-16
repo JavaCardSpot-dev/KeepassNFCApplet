@@ -108,11 +108,12 @@ abstract public class AbstractClient {
 		}
 	}
 
-	public void generateCardKey() throws CardException
+	public short generateCardKey() throws CardException
 	{
 		byte[] command = constructApdu(INS_CARD_GENERATE_CARD_KEY);
 
-		sendSingleCommand(command);
+		byte[] keyLength = sendSingleCommand(command);
+		return getShort(keyLength, 0);
 	}
 
 	protected short getShort(byte[] buffer, int idx)
