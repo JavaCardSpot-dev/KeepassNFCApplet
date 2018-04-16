@@ -62,6 +62,14 @@ public class AppletTest {
 		tearDownClient();
 	}
 
+	@Test(dependsOnGroups = {"Installing"})
+	public void getVersion() throws Exception
+	{
+		byte[] version = client.getVersion();
+		Assert.assertEquals((byte)1, version[0]);
+		Assert.assertEquals((byte)1, version[1]);
+	}
+
 	@Test(dependsOnGroups = {"Installing"}, groups = {"Configuring"})
 	public void setupNewCardKey() throws Exception
 	{

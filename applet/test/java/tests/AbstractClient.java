@@ -91,7 +91,7 @@ abstract public class AbstractClient {
 					decrypt(testData);
 					break;
 				case "version":
-					version();
+					getVersion();
 					break;
 				default:
 					System.err.println("Unknown command '" + cmd + "'");
@@ -375,16 +375,16 @@ abstract public class AbstractClient {
 		return null;
 	}
 
-	public void version() throws CardException
+	public byte[] getVersion() throws CardException
 	{
-		byte[] nullPayload = {};
-		byte[] command = constructApdu(INS_CARD_GET_VERSION, nullPayload);
-
+		byte[] command = constructApdu(INS_CARD_GET_VERSION);
 		byte[] response = sendSingleCommand(command);
 
 		if (response != null) {
 			System.out.println("Applet version " + response[1]);
+			return response;
 		}
+		throw new CardException("Unknown error");
 	}
 
 	public byte[] decryptWithTransactionKey(byte[] source, int start, int length, byte[] keyBytes, byte[] ivBytes)
