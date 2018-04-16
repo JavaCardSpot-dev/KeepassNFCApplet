@@ -62,16 +62,6 @@ public class AppletTest {
 		tearDownClient();
 	}
 
-	// Simulator/dummy test
-	@Test(dependsOnGroups = {"Installing"}, priority = 1)
-	public void dummyCommand() throws Exception
-	{
-		final ResponseAPDU responseAPDU = client.dummyCommand();
-		Assert.assertNotNull(responseAPDU);
-		Assert.assertEquals(0x9000, responseAPDU.getSW());
-		Assert.assertNotNull(responseAPDU.getBytes());
-	}
-
 	@Test(dependsOnGroups = {"Installing"}, groups = {"Configuring"})
 	public void setupNewCardKey() throws Exception
 	{
