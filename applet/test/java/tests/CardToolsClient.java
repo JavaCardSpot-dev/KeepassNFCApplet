@@ -112,6 +112,10 @@ public class CardToolsClient extends AbstractClient {
 				case 0xF102:
 					msg = "CryptoException: Uninitialized key";
 					break;
+				case 0x05:
+				case 0xF105:
+					msg = "CryptoException: Illegal use (input message not block aligned)";
+					break;
 				case 0x6D00:
 					msg = "CardException: INS not supported";
 					break;
