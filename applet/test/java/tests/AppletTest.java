@@ -71,8 +71,8 @@ public class AppletTest {
 		Assert.assertNotNull(responseAPDU.getBytes());
 	}
 
-	@Test(dependsOnGroups = {"Installing"})
-	public void setupNewKey() throws Exception
+	@Test(dependsOnGroups = {"Installing"}, groups = {"Configuring"})
+	public void setupNewCardKey() throws Exception
 	{
 		short keyLength = client.generateCardKey();
 		Assert.assertEquals((2048 + 64)/8, keyLength);
