@@ -81,7 +81,11 @@ abstract public class AbstractClient {
 					setNewPasswordKey();
 					break;
 				case "encrypt":
-					encrypt();
+					try {
+						encrypt();
+					} catch (IllegalBlockSizeException | NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | InvalidAlgorithmParameterException | InvalidKeyException e) {
+						e.printStackTrace();
+					}
 					break;
 				case "decrypt":
 					decrypt();
@@ -295,34 +299,17 @@ abstract public class AbstractClient {
 		}
 	}
 
-	public byte[] encrypt(byte[] input)
+	public byte[] encrypt(byte[] input) throws BadPaddingException, IllegalBlockSizeException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException
 	{
 		/* Encrypts test data with the password key for testing. */
-		Cipher cipher;
-
-		try {
-			cipher = Cipher.getInstance("AES/CBC/NoPadding");
-		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-			e.printStackTrace();
-			return null;
-		}
+		Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
 
 		SecretKeySpec key = new SecretKeySpec(passwordKey, "AES");
 		IvParameterSpec iv = new IvParameterSpec(passwordKeyIv);
-		try {
-			cipher.init(Cipher.ENCRYPT_MODE, key, iv);
-		} catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
-			e.printStackTrace();
-			return null;
-		}
+		cipher.init(Cipher.ENCRYPT_MODE, key, iv);
 
 		byte[] result;
-		try {
-			result = cipher.doFinal(input);
-		} catch (IllegalBlockSizeException | BadPaddingException e) {
-			e.printStackTrace();
-			return null;
-		}
+		result = cipher.doFinal(input);
 
 		System.out.println("Original:  " + toHex(input));
 		System.out.println("IV:        " + toHex(passwordKeyIv));
@@ -330,7 +317,7 @@ abstract public class AbstractClient {
 		return result;
 	}
 
-	public byte[] encrypt()
+	public byte[] encrypt() throws IllegalBlockSizeException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException
 	{
 		return encrypt(TEST_INPUT);
 	}

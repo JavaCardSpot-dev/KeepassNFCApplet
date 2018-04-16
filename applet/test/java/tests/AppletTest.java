@@ -6,6 +6,7 @@ import net.lardcave.keepassnfcapplet.KeepassNFC;
 import org.junit.Assert;
 import org.testng.annotations.*;
 
+import javax.crypto.IllegalBlockSizeException;
 import javax.smartcardio.ResponseAPDU;
 import java.security.interfaces.RSAPublicKey;
 
@@ -114,7 +115,28 @@ public class AppletTest {
 		client.generateCardKey();
 		client.setNewPasswordKey();
 		client.setPasswordKeyIv();
-		client.encrypt();
-		client.encrypt("Test".getBytes());
+		byte[] encrypted = null;
+		try {
+			encrypted = client.encrypt();
+		} catch (Exception e) {
+			e.printStackTrace();
+			Assert.fail("Exception thrown encrypting default data");
+		} finally {
+			Assert.assertNotNull(encrypted);
+		}
+		try {
+			client.encrypt("Test".getBytes());
+		} catch (Exception e) {
+			Assert.assertEquals(IllegalBlockSizeException.class, e.getClass());
+		}
+		encrypted = null;
+		try {
+			encrypted = client.encrypt("TestDataCorrectL".getBytes());
+		} catch (Exception e) {
+			e.printStackTrace();
+			Assert.fail("Exception thrown encrypting default data");
+		} finally {
+			Assert.assertNotNull(encrypted);
+		}
 	}
 }
