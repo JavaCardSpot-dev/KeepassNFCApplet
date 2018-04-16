@@ -138,7 +138,7 @@ abstract public class AbstractClient {
 		byte[] command = constructApdu(INS_CARD_GET_CARD_PUBKEY, args);
 		byte[] result = sendAPDU(channel, command).getBytes();
 
-		if (result == null || result[0] != 1) {
+		if (result == null || result[0] != RESPONSE_SUCCEEDED) {
 			System.err.println("Couldn't retrieve exponent");
 			return null;
 		}
@@ -153,7 +153,7 @@ abstract public class AbstractClient {
 			command = constructApdu(INS_CARD_GET_CARD_PUBKEY, args);
 			result = sendAPDU(channel, command).getBytes();
 
-			if (result == null || result[0] != 1) {
+			if (result == null || result[0] != RESPONSE_SUCCEEDED) {
 				System.err.println("Couldn't retrieve modulus");
 				return null;
 			}
