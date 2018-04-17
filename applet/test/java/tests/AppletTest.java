@@ -31,7 +31,7 @@ public class AppletTest {
 	public void setUpInstalling() throws Exception
 	{
 		client = new CardToolsClient(KeepassNFC.class, "F0375472804FD5FA0F243E42C1B63825");
-		client.setThrowOnCommandException(false);
+		client.setThrowOnCommandException(true);
 		client.setCardType(cardType);
 	}
 
