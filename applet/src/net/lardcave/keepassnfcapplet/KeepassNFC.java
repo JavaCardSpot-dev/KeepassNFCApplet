@@ -267,37 +267,54 @@ public class KeepassNFC extends Applet {
 	}
 
 
+	/**
+	 * Decrypt the transaction key and set up AES engines for decryption.
+	 * <p>
+	 * This method assumes that the client has alrady written its Transaction Key,
+	 * encrypted with the Card Key, to the scratch area (with 0x76, writeToScratch instruction).
+	 * This is assumed to be long RSA_KEYLENGTH / 8.
+	 * <p>
+	 * response APDU (in case of correct storage of Password Kay):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * response APDU (in case of incorrect length of provided input):
+	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 * response APDU (in case of crypto error):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 *
+	 * @param apdu Request APDU formatted this way:
+	 *             * 16 bytes: IV for transaction key (plaintext)
+	 *             * 16 bytes: IV for password key (plaintext)
+	 */
 	protected void prepareDecryption(APDU apdu)
 	{
-		/* Decrypt the transaction key and set up AES engines for decryption.
-		 *
-		 * scratch area contains: transaction key, encrypted with card key
-		 * 16 bytes: IV for transaction key (plaintext)
-		 * 16 bytes: IV for password key (plaintext)
-		 */
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
-
-		if (length == 32) {
-			// Fault Induction check
+		// check that length of incoming data is 32, with fault induction prevention
+		if (length == 32)
 			if ((short)-length == (short)-32) {
-				decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
-				transaction_key.setKey(aes_key_temporary, (short)0);
-				Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-				Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-
-				transaction_cipher.init(transaction_key, Cipher.MODE_ENCRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 0), (short)16);
-				password_cipher.init(password_key, Cipher.MODE_DECRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 16), (short)16);
-
+				try { // catch crypto exceptions
+					decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
+					transaction_key.setKey(aes_key_temporary, (short)0);
+					transaction_cipher.init(transaction_key, Cipher.MODE_ENCRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 0), (short)16);
+					password_cipher.init(password_key, Cipher.MODE_DECRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 16), (short)16);
+				} catch (CryptoException e) {
+					// cleanup sensitive data, with fault induction prevention
+					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+					transaction_key.clearKey();
+					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+				} finally {
+					// cleanup sensitive data, with fault induction prevention
+					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+				}
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-			} else {
-				buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
+				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+				ISOException.throwIt(ISO7816.SW_NO_ERROR);
 			}
-		} else {
-			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
-		}
-
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
 
 	protected void decryptBlock(APDU apdu)

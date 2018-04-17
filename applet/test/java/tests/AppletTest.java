@@ -216,4 +216,37 @@ public class AppletTest {
 		} catch (CardException ignored) {
 		}
 	}
+
+	@Test(groups = {"Failing"})
+	public void uninitializedCardKeySettingTransactionKey() throws Exception
+	{
+		try {
+			client.sendAPDU(client.getCardMngr(), AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]));
+			Assert.fail("prepareDecryption should throw error if card hasn't any key.");
+		} catch (CardException ignored) {
+		}
+	}
+
+	@Test(groups = {"Failing"})
+	public void incorrectLengthTransactionKey() throws Exception
+	{
+		try {
+			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION);
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("prepareDecryption should throw error if no data is provided in request APDU.");
+		} catch (CardException ignored) {
+		}
+		try {
+			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[16]);
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("prepareDecryption should throw error if incorrect data length (16) is provided in request APDU.");
+		} catch (CardException ignored) {
+		}
+		try {
+			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[64]);
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("prepareDecryption should throw error if incorrect data length (64) is provided in request APDU.");
+		} catch (CardException ignored) {
+		}
+	}
 }
