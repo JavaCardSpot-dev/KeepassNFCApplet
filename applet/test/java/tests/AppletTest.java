@@ -249,4 +249,16 @@ public class AppletTest {
 		} catch (CardException ignored) {
 		}
 	}
+
+	@Test(groups = {"Failing"})
+	public void incorrectLengthGenCardKey() throws Exception
+	{
+		try {
+			byte[] apdu = client.constructApdu(AbstractClient.INS_CARD_GENERATE_CARD_KEY, new byte[]{0x01, 0x02});
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("generateCardKey should throw error if data is provided in request APDU.");
+		} catch (CardException ignored) {
+		}
+	}
+
 }

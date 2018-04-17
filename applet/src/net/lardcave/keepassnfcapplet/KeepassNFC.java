@@ -370,27 +370,45 @@ public class KeepassNFC extends Applet {
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)2);
 	}
 
+	/**
+	 * Method to generate a new Card Key pair.
+	 * <p>
+	 * response APDU (in case of correct generation):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * 2 bytes: Key length (bits)
+	 * response APDU (in case of provided input):
+	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 * response APDU (in case of crypto error):
+	 * * SW: 0xF100 | e.getReason() (INVALID_INIT in case of keys not initialized after genKeyPair())
+	 *
+	 * @param apdu Request APDU, empty.
+	 */
 	protected void generateCardKey(APDU apdu)
 	{
-		/* in: nothing
-		 * out: two bytes indicating the length of the key
-		 */
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
 		card_cipher_initialised = false;
-		card_key.genKeyPair();
+		if (length != (short)0) {
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+		}
+		try {
+			card_key.genKeyPair();
+		} catch (CryptoException e) {
+			ISOException.throwIt((short)((short)0xF100 | e.getReason()));
+		}
 
 		// checking card keys are generated correctly or not
-		if (card_key != null) {
+		if (card_key.getPublic().isInitialized() && card_key.getPrivate().isInitialized()) {
 			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
-			buffer[ISO7816.OFFSET_CDATA + 1] = (RSA_KEYLENGTH >> 8) & 0xFF;
-			buffer[ISO7816.OFFSET_CDATA + 2] = (RSA_KEYLENGTH & 0xFF);
-
+			Util.setShort(buffer, (short)(ISO7816.OFFSET_CDATA + 1), RSA_KEYLENGTH);
 			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)3);
 		} else {
 			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
 			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+			ISOException.throwIt((short)((short)0xF100 | CryptoException.INVALID_INIT));
 		}
 	}
 
