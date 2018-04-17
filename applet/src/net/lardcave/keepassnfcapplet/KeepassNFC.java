@@ -382,10 +382,19 @@ public class KeepassNFC extends Applet {
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)(encrypted + 1));
 	}
 
+	/**
+	 * Method to get the current applet version.
+	 *
+	 * response APDU (in case of correct generation):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * 1 byte: VERSION
+	 *
+	 * @param apdu Request APDU, empty (no check).
+	 */
 	protected void getVersion(APDU apdu)
 	{
 		byte[] buffer = apdu.getBuffer();
-		short length = apdu.setIncomingAndReceive();
+		apdu.setIncomingAndReceive();
 
 		buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
 		buffer[ISO7816.OFFSET_CDATA + 1] = VERSION;
