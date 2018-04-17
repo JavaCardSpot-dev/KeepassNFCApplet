@@ -243,20 +243,7 @@ public class KeepassNFC extends Applet {
 		// check that length of incoming data is 0, with fault induction prevention
 		if (length == (short)0)
 			if ((short)-length == (short)0) {
-				try { // catch crypto exceptions
-					decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
-					password_key.setKey(aes_key_temporary, (short)0);
-				} catch (CryptoException e) {
-					// cleanup sensitive data, with fault induction prevention
-					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-					password_key.clearKey();
-					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
-				} finally {
-					// cleanup sensitive data, with fault induction prevention
-					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-				}
+				decryptWithCardKey(scratch_area, (short)0, password_key);
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
 				ISOException.throwIt(ISO7816.SW_NO_ERROR);
@@ -269,6 +256,9 @@ public class KeepassNFC extends Applet {
 
 	/**
 	 * Decrypt the transaction key and set up AES engines for decryption.
+	 * <p>
+	 * This method assumes that the client has alrady configured the card
+	 * with its Password Key.
 	 * <p>
 	 * This method assumes that the client has alrady written its Transaction Key,
 	 * encrypted with the Card Key, to the scratch area (with 0x76, writeToScratch instruction).
@@ -292,21 +282,14 @@ public class KeepassNFC extends Applet {
 		// check that length of incoming data is 32, with fault induction prevention
 		if (length == 32)
 			if ((short)-length == (short)-32) {
+				decryptWithCardKey(scratch_area, (short)0, transaction_key);
 				try { // catch crypto exceptions
-					decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
-					transaction_key.setKey(aes_key_temporary, (short)0);
 					transaction_cipher.init(transaction_key, Cipher.MODE_ENCRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 0), (short)16);
 					password_cipher.init(password_key, Cipher.MODE_DECRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 16), (short)16);
 				} catch (CryptoException e) {
-					// cleanup sensitive data, with fault induction prevention
-					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+					// cleanup sensitive data
 					transaction_key.clearKey();
 					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
-				} finally {
-					// cleanup sensitive data, with fault induction prevention
-					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 				}
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
@@ -417,15 +400,45 @@ public class KeepassNFC extends Applet {
 		}
 	}
 
-	// method to decrypt the AES keys which are encrypted with RSA pub key and been sent by the user application to the applet
-	private boolean decryptWithCardKey(byte[] input, short offset, byte[] output)
+	/**
+	 * Method to decrypt the AES keys which are encrypted with Card Public key and have been sent by the client to the applet.
+	 *
+	 * @param input  Input byte array containing encrypted key.
+	 * @param offset Offset from which the encrypted key starts.
+	 * @param output Output byte array where to save decrypted key.
+	 * @return Length of decrypted key.
+	 */
+	private short decryptWithCardKey(byte[] input, short offset, AESKey output)
 	{
-		// getting the private key
-		RSAPrivateCrtKey private_key = (RSAPrivateCrtKey)card_key.getPrivate();
-		// initialising the cipher
-		card_cipher.init(private_key, Cipher.MODE_DECRYPT);
-		// performing the decryption
-		card_cipher.doFinal(input, offset, (short)(RSA_KEYLENGTH / 8), output, (short)0);
-		return true;
+		// throw error on invalid array length
+		if ((short)(input.length - offset) < (short)(RSA_KEYLENGTH / 8))
+			ISOException.throwIt((short)(ISO7816.SW_WRONG_LENGTH | 0x01));
+		if ((short)(aes_key_temporary.length) < (short)(RSA_KEYLENGTH / 8))
+			ISOException.throwIt((short)(ISO7816.SW_WRONG_LENGTH | 0x02));
+
+		short decryptedBytes = 0;
+		try { // catch crypto exceptions
+			// getting the private key
+			RSAPrivateCrtKey private_key = (RSAPrivateCrtKey)card_key.getPrivate();
+			// initialising the cipher
+			card_cipher.init(private_key, Cipher.MODE_DECRYPT);
+			// performing the decryption
+			decryptedBytes = card_cipher.doFinal(input, offset, (short)(RSA_KEYLENGTH / 8), aes_key_temporary, (short)0);
+			if (decryptedBytes == (short)0)
+				throw new CryptoException(CryptoException.ILLEGAL_USE);
+			output.setKey(aes_key_temporary, (short)0);
+		} catch (CryptoException e) {
+			// cleanup sensitive data, with fault induction prevention
+			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+			output.clearKey();
+			decryptedBytes = 0;
+			throw e;
+		} finally {
+			// cleanup sensitive data, with fault induction prevention
+			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		}
+		return decryptedBytes;
 	}
 }
