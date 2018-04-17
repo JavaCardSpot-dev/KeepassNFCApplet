@@ -370,7 +370,10 @@ public class KeepassNFC extends Applet {
 					}
 				}
 			}
-		} catch (CryptoException | ArrayIndexOutOfBoundsException e) {
+		} catch (CryptoException e) {
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			encrypted = 0;
+		} catch (ArrayIndexOutOfBoundsException e) {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 			encrypted = 0;
 		} finally {
