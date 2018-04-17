@@ -409,26 +409,36 @@ public class KeepassNFC extends Applet {
 		}
 	}
 
+	/**
+	 * Save raw data to scratch area. This data is then used by other functions.
+	 * <p>
+	 * response APDU (in case of correct storage of Password Kay):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * 2 bytes: amount of free space after saved data
+	 * response APDU (in case of incorrect length of provided input):
+	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 *
+	 * @param apdu Request APDU formatted this way:
+	 *             * 2 bytes: offset from which to write in scratch
+	 *             * n bytes: actual data
+	 */
 	protected void writeToScratch(APDU apdu)
 	{
-		/* in: 2 bytes: offset in scratch
-		 *     n bytes: data
-		 * out: success | fail
-		 */
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
 		short offset = Util.getShort(buffer, ISO7816.OFFSET_CDATA);
-		if ((short)scratch_area.length > (short)(offset + length - 2)) {     //check the data length not more than scratch area
-			Util.arrayCopy(buffer, (short)(ISO7816.OFFSET_CDATA + 2), scratch_area, offset, (short)(length - 2));
-
-			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
-
-			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-		} else {      // throw error if failed
-			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
-			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		// check the data length fits into the scratch area, prevent fault induction
+		if ((short)scratch_area.length >= (short)(offset + length - 2)) {
+			if ((short)(scratch_area.length + 2) >= (short)(offset + length)) {
+				Util.arrayCopy(buffer, (short)(ISO7816.OFFSET_CDATA + 2), scratch_area, offset, (short)(length - 2));
+				buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
+				Util.setShort(buffer, (short)(ISO7816.OFFSET_CDATA + 1), (short)(scratch_area.length - offset - length + 2));
+				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)3);
+				ISOException.throwIt(ISO7816.SW_NO_ERROR);
+			}
 		}
+		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
 
 	/**
