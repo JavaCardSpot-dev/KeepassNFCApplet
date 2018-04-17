@@ -387,17 +387,10 @@ public class KeepassNFC extends Applet {
 	// method to decrypt the AES keys which are encrypted with RSA pub key and been sent by the user application to the applet
 	private boolean decryptWithCardKey(byte[] input, short offset, byte[] output)
 	{
-		if (!card_cipher_initialised) {
-			// getting the private key
-			RSAPrivateCrtKey private_key = (RSAPrivateCrtKey)card_key.getPrivate();
-			// initialising the cipher
-			card_cipher.init(private_key, Cipher.MODE_DECRYPT);
-			// checking of initialisation of card cipher
-			if (card_cipher != null)
-				card_cipher_initialised = true;
-			else
-				card_cipher_initialised = false;
-		}
+		// getting the private key
+		RSAPrivateCrtKey private_key = (RSAPrivateCrtKey)card_key.getPrivate();
+		// initialising the cipher
+		card_cipher.init(private_key, Cipher.MODE_DECRYPT);
 		// performing the decryption
 		card_cipher.doFinal(input, offset, (short)(RSA_KEYLENGTH / 8), output, (short)0);
 		return true;
