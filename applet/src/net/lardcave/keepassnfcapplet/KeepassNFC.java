@@ -417,6 +417,8 @@ public class KeepassNFC extends Applet {
 		try {
 			card_key.genKeyPair();
 		} catch (CryptoException e) {
+			card_key.getPrivate().clearKey();
+			card_key.getPublic().clearKey();
 			ISOException.throwIt((short)((short)0xF100 | e.getReason()));
 		}
 
