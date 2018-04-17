@@ -26,6 +26,8 @@ public class KeepassNFC extends Applet {
 
 	final static byte VERSION                      = (byte)0x1;
 
+	final static short SW_CRYPTO_EXCEPTION         = (short)0xF100;
+
 	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;    // genrtaion of key pair using RSA algorithm
 	final static short RSA_KEYLENGTH               = KeyBuilder.LENGTH_RSA_2048;   // RSA key length 2048
 
@@ -194,11 +196,11 @@ public class KeepassNFC extends Applet {
 
 				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
 				if (!key.isInitialized())
-					ISOException.throwIt((short)0xF100);
+					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
 				ret_key_length = key.getExponent(buffer, PUBKEY_RESPONSE_EXPONENT_IDX);
 				// prevent Fault Induction on key.getExponent
 				if (ret_key_length == (short)0) // don't need second FI check, too near
-					ISOException.throwIt((short)0xF100);
+					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
 
 				Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, ret_key_length);
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
@@ -209,11 +211,11 @@ public class KeepassNFC extends Applet {
 				// Always rewrite public modulus in scratch buffer, prevents reading of arbitrary scratch_area positions
 				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
 				if (!key.isInitialized())
-					ISOException.throwIt((short)0xF100);
+					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
 				ret_key_length = key.getModulus(scratch_area, (short)0);
 				// prevent Fault Induction on key.getModulus
 				if (ret_key_length == (short)0) // don't need second FI check, too near
-					ISOException.throwIt((short)0xF100);
+					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
 
 				// calculating the length of key
 				short amountToSend = (short)(ret_key_length - offset);
@@ -236,7 +238,7 @@ public class KeepassNFC extends Applet {
 				lengthOut = (short)(amountToSend + PUBKEY_RESPONSE_MODULUS_OFFSET);
 			} // else nothing has changed: lengthOut == 1, RESPONSE_FAILED
 		} catch (CryptoException e) {
-			ISOException.throwIt((short)((short)0xF100 | e.getReason()));
+			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
 		}
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, lengthOut);
 	}
@@ -419,7 +421,7 @@ public class KeepassNFC extends Applet {
 		} catch (CryptoException e) {
 			card_key.getPrivate().clearKey();
 			card_key.getPublic().clearKey();
-			ISOException.throwIt((short)((short)0xF100 | e.getReason()));
+			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
 		}
 
 		// checking card keys are generated correctly or not
@@ -430,7 +432,7 @@ public class KeepassNFC extends Applet {
 		} else {
 			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
 			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-			ISOException.throwIt((short)((short)0xF100 | CryptoException.INVALID_INIT));
+			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.INVALID_INIT));
 		}
 	}
 
