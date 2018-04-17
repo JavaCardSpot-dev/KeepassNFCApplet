@@ -273,4 +273,21 @@ public class AppletTest {
 		}
 	}
 
+	@Test(groups = {"Failing"})
+	public void incorrectLengthGetCardPubKey() throws Exception
+	{
+		// expects 3 bytes, test with less and more
+		try {
+			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{0x01, 0x02});
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("getCardPubKey should throw error if data provided is not 3 bytes.");
+		} catch (CardException ignored) {
+		}
+		try {
+			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{0x01, 0x02, 0x03, 0x04});
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("getCardPubKey should throw error if data provided is not 3 bytes.");
+		} catch (CardException ignored) {
+		}
+	}
 }
