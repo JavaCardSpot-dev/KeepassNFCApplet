@@ -58,6 +58,7 @@ public class KeepassNFC extends Applet {
 		scratch_area = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
 		aes_key_temporary = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
 
+		cleanAllSensitiveData();
 		register();
 	}
 
@@ -67,14 +68,32 @@ public class KeepassNFC extends Applet {
 		new KeepassNFC(bArray, bOffset, bLength);
 	}
 
+	private void cleanTransientSensitiveData() {
+		transaction_key.clearKey();
+		// card_cipher
+		// password_cipher
+		// transaction_cipher
+		Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
+		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+	}
+
+	private void cleanAllSensitiveData() {
+		password_key.clearKey();
+		card_key.getPrivate().clearKey();
+		cleanTransientSensitiveData();
+		card_key.getPublic().clearKey();
+	}
+
 	// method to select the applet
 	public boolean select()
 	{
+		cleanTransientSensitiveData();
 		return true;
 	}
 
 	public void deselect()
 	{
+		cleanTransientSensitiveData();
 	}
 
 	// method to process APDU from client
