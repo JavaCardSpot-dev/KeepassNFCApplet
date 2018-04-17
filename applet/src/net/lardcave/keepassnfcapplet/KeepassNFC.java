@@ -31,7 +31,7 @@ public class KeepassNFC extends Applet {
 	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;    // genrtaion of key pair using RSA algorithm
 	final static short RSA_KEYLENGTH               = KeyBuilder.LENGTH_RSA_2048;   // RSA key length 2048
 
-	// Definining the variables
+	// Initialising the variables to null
 	private KeyPair card_key = null;
 	private AESKey password_key = null;
 	private AESKey transaction_key = null;
@@ -42,7 +42,15 @@ public class KeepassNFC extends Applet {
 
 	private byte[] scratch_area = null;    // space to store the keys or data at different times during encryption/decryption
 	private byte[] aes_key_temporary = null;
-
+        private static final byte Master_PIN_MIN_LENGTH = 6;  // minimum length of Master PIN
+	private static final byte Master_PIN_MAX_LENGTH = 127; // maximum length of Master PIN
+        private static final byte User_PIN_MIN_LENGTH = 4;     // Minimum length of User PIN
+	private static final byte User_PIN_MAX_LENGTH = 127;   // Maximum Length of User PIN
+        private byte Master_PIN_length; 
+        private byte User_PIN_length;
+        private OwnerPIN Master_PIN;
+        private OwnerPIN User_PIN;
+        private static byte[] Master_PIN_DEFAULT = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36 };
 	//method to generate the three keys
 	protected KeepassNFC(byte[] bArray, short bOffset, byte bLength)
 	{
@@ -69,7 +77,15 @@ public class KeepassNFC extends Applet {
 	{
 		new KeepassNFC(bArray, bOffset, bLength);
 	}
-
+        
+        private void initialize() {
+		// Initialize Master_PIN with default password
+		Master_PIN= new OwnerPIN((byte) 3,Master_PIN_MAX_LENGTH );
+		Master_PIN.update(Master_PIN_DEFAULT, (short)0, (byte) Master_PIN_DEFAULT.length);
+		Master_PIN_length = (byte) Master_PIN_DEFAULT.length;
+		
+        }
+        // method to clear all transient data
 	private void cleanTransientSensitiveData() {
 		transaction_key.clearKey();
 		// card_cipher
@@ -78,7 +94,7 @@ public class KeepassNFC extends Applet {
 		Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 	}
-
+        // Method to clear all sensitive data
 	private void cleanAllSensitiveData() {
 		password_key.clearKey();
 		card_key.getPrivate().clearKey();
