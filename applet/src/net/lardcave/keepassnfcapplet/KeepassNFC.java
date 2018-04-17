@@ -40,7 +40,6 @@ public class KeepassNFC extends Applet {
 
 	private byte[] scratch_area = null;    // space to store the keys or data at different times during encryption/decryption
 	private byte[] aes_key_temporary = null;
-	private boolean card_cipher_initialised = true;    // Initialisation of key to maintain the randomness in the cipher data
 
 	//method to generate the three keys
 	protected KeepassNFC(byte[] bArray, short bOffset, byte bLength)
@@ -58,7 +57,6 @@ public class KeepassNFC extends Applet {
 
 		scratch_area = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
 		aes_key_temporary = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
-		card_cipher_initialised = false;
 
 		register();
 	}
@@ -388,7 +386,6 @@ public class KeepassNFC extends Applet {
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
-		card_cipher_initialised = false;
 		if (length != (short)0) {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
