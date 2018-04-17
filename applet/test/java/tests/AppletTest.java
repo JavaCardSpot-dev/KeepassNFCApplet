@@ -69,7 +69,7 @@ public class AppletTest {
 	{
 		byte[] version = client.getVersion();
 		Assert.assertEquals((byte)1, version[0]);
-		Assert.assertEquals((byte)1, version[1]);
+		Assert.assertEquals((byte)2, version[1]);
 	}
 
 	@Test(dependsOnGroups = {"Installing"}, groups = {"Configuring"})

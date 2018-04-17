@@ -24,7 +24,7 @@ public class KeepassNFC extends Applet {
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
 
-	final static byte VERSION                      = (byte)0x1;
+	final static byte VERSION                      = (byte)0x2;
 
 	final static short SW_CRYPTO_EXCEPTION         = (short)0xF100;
 
