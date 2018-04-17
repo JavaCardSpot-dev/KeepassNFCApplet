@@ -30,7 +30,7 @@ After recursively cloning the repository (to gather all the JavaCard SKDs), you 
 to get the `.cap` file.
 
 ## Known compatibilities
-It should work on [JC30M48](http://www.javacardos.com/store/javacard-jc30m48cr.php?ws=github&prj=KeepassNFC), the downloading and installation have been tested on this card.
+Until [701cdfc](https://github.com/JavaCardSpot-dev/KeepassNFCApplet/commit/701cdfc89de7831d23bb91bf415e1e20b1ee72c4) it should work on [JC30M48](http://www.javacardos.com/store/javacard-jc30m48cr.php?ws=github&prj=KeepassNFC), the downloading and installation have been tested on this card.
 
 ## Maintainers
 The original creator of the project is the [JavaCardOS](http://www.javacardos.com/) community.
@@ -70,11 +70,16 @@ The various APPDU formats that have been used during entire process above are as
 (i)  [0x76] - Write To Scratch: this is the main communication method, since other commands relies on this method was previously called, 
 with no checks. The format expected is to have the first two bytes indicating the offset at which the data to write starts, and from 
 that offset the data will be copied until the end of the APDU buffer. The scratch area is a 260-bytes memory area allocated on RAM. No checks are done at all for emptiness, wrong offset value… The output APDU contains a success value (0x1) if everything went fine, otherwise a JavaCard exception will be raised.
+(ii) [0x75] - Generate Card Key: this method doesn’t expect any input, and if called it will reset the internal key, setting a flag indicating that the cipher isn’t initialized. The output APDU contains three bytes indicating (1) the success of the operation and (2-3) the length of the internal key.
 
+<<<<<<< HEAD
 (ii)  [0x75] - Generate Card Key: this method doesn’t expect any input, and if called it will reset the internal key, setting a flag indicating that the cipher isn’t initialized. The output APDU contains three bytes indicating (1) the success of the operation and (2-3) the length of the internal key.
 
 (iii) [0x71] - Set Password Key: the password key must be sent to the card encrypted with the card public key by the user. Hence, firstly this 
 method expects the user to have already sent a Write To Scratch APDU with the encrypted password key. Now, this method will decrypt the scratch area to obtain password key (AES-128). 
+=======
+(iii) [0x71] - Set Password Key: the password key must be sent to the card encrypted with the card public key by the user. Hence, firstly this method expects the user to have already sent a Write To Scratch APDU with the encrypted password key. Now, this method will decrypt the scratch area to obtain password key (AES-128). 
+>>>>>>> becca5227aa38a3aebe8fc338d9e98dfcec08108
 No input is required, and the output contains one byte, always corresponding to the success value (0x1). If any problem occurs, the corresponding Java standard exception will be raised.
 
 (iv)  [0x72] - Prepare Decryption: this method expects the user to have previously sent a Write To Scratch APDU with a transaction key (AES-128) encrypted with the public key of the card. This method will load this key into an internal variable (RAM), and it will initialize the ciphers for the transaction and for the password decryptions. The output APDU contains just the success/failure byte. 

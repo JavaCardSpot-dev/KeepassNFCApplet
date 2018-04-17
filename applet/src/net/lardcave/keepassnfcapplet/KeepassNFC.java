@@ -24,7 +24,9 @@ public class KeepassNFC extends Applet {
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
 
-	final static byte VERSION                      = (byte)0x1;
+	final static byte VERSION                      = (byte)0x2;
+
+	final static short SW_CRYPTO_EXCEPTION         = (short)0xF100;
 
 	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;    // genrtaion of key pair using RSA algorithm
 	final static short RSA_KEYLENGTH               = KeyBuilder.LENGTH_RSA_2048;   // RSA key length 2048
@@ -38,65 +40,81 @@ public class KeepassNFC extends Applet {
 	private Cipher password_cipher = null;
 	private Cipher transaction_cipher = null;
 
-	private byte[] scratch_area = null;	// space to store the keys or data at different times during encryption/decryption
+	private byte[] scratch_area = null;    // space to store the keys or data at different times during encryption/decryption
 	private byte[] aes_key_temporary = null;
-	private boolean card_cipher_initialised = true;	// Initialisation of key to maintain the randomness in the cipher data
-
-	private short rsa_modulus_length = 0; // only used when sending (partial) modulus in getCardPubKey()
 
 	//method to generate the three keys
 	protected KeepassNFC(byte[] bArray, short bOffset, byte bLength)
-	{      
+	{
 		// Generating RSA Key pair
 		card_key = new KeyPair(RSA_ALGORITHM, RSA_KEYLENGTH);
 		// AES -128 Bit Passowrd Key
 		password_key = (AESKey)KeyBuilder.buildKey(KeyBuilder.TYPE_AES, KeyBuilder.LENGTH_AES_128, false);
 		// AES -128 Bit Transaction key
 		transaction_key = (AESKey)KeyBuilder.buildKey(KeyBuilder.TYPE_AES_TRANSIENT_DESELECT, KeyBuilder.LENGTH_AES_128, false);
-                 
+
 		card_cipher = Cipher.getInstance(Cipher.ALG_RSA_PKCS1, false);
 		password_cipher = Cipher.getInstance(Cipher.ALG_AES_BLOCK_128_CBC_NOPAD, false);
 		transaction_cipher = Cipher.getInstance(Cipher.ALG_AES_BLOCK_128_CBC_NOPAD, false);
 
 		scratch_area = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
 		aes_key_temporary = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
-		card_cipher_initialised = false;
 
+		cleanAllSensitiveData();
 		register();
 	}
-   
+
 	// method to install the applet
 	public static void install(byte[] bArray, short bOffset, byte bLength) throws ISOException
 	{
 		new KeepassNFC(bArray, bOffset, bLength);
 	}
-        // method to select the applet
+
+	private void cleanTransientSensitiveData() {
+		transaction_key.clearKey();
+		// card_cipher
+		// password_cipher
+		// transaction_cipher
+		Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
+		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+	}
+
+	private void cleanAllSensitiveData() {
+		password_key.clearKey();
+		card_key.getPrivate().clearKey();
+		cleanTransientSensitiveData();
+		card_key.getPublic().clearKey();
+	}
+
+	// method to select the applet
 	public boolean select()
 	{
+		cleanTransientSensitiveData();
 		return true;
 	}
-        
+
 	public void deselect()
 	{
+		cleanTransientSensitiveData();
 	}
-       
+
 	// method to process APDU from client
 	public void process(APDU apdu) throws ISOException
 	{
 		byte[] buffer = apdu.getBuffer();   // buffer for holding the header
 
-		if(selectingApplet())
+		if (selectingApplet())
 			return;
 
-		if(buffer[ISO7816.OFFSET_CLA] == CLA_CARD_KPNFC_CMD) {   // checking CLA field of header 
-			switch(buffer[ISO7816.OFFSET_INS]) {
+		if (buffer[ISO7816.OFFSET_CLA] == CLA_CARD_KPNFC_CMD) {   // checking CLA field of header
+			switch (buffer[ISO7816.OFFSET_INS]) {
 				case INS_CARD_GET_CARD_PUBKEY:    // Getting the card public key
 					getCardPubKey(apdu);
 					break;
 				case INS_CARD_SET_PASSWORD_KEY:   // setting the password key
 					setPasswordKey(apdu);
 					break;
-				case INS_CARD_PREPARE_DECRYPTION:	//to exchange safely the AES keys for decryption via PKI system 
+				case INS_CARD_PREPARE_DECRYPTION:    //to exchange safely the AES keys for decryption via PKI system
 					prepareDecryption(apdu);
 					break;
 				case INS_CARD_DECRYPT_BLOCK:   // decryption of database
@@ -108,18 +126,16 @@ public class KeepassNFC extends Applet {
 				case INS_CARD_GENERATE_CARD_KEY:  // generating the card keys
 					generateCardKey(apdu);
 					break;
-				case INS_CARD_WRITE_TO_SCRATCH:	//APDU instruction to write in the scratch area
+				case INS_CARD_WRITE_TO_SCRATCH:    //APDU instruction to write in the scratch area
 					writeToScratch(apdu);
 					break;
 				default:
 					ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
 					break;
 			}
+		} else if (buffer[ISO7816.OFFSET_CLA] != CLA_CARD_KPNFC_CMD) {
+			ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
 		}
-                else if (buffer[ISO7816.OFFSET_CLA] != CLA_CARD_KPNFC_CMD) 
-                {
-                    ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
-                }
 	}
 
 	private static final short PUBKEY_MAX_SEND_LENGTH = 120;
@@ -133,273 +149,378 @@ public class KeepassNFC extends Applet {
 	private static final short PUBKEY_RESPONSE_EXPONENT_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_EXPONENT_OFFSET);
 	private static final short PUBKEY_RESPONSE_MODULUS_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_MODULUS_OFFSET);
 
-	//method to send pulic key (exponent & modulus) to the user application
+	/**
+	 * Method to send Public Key (exponent & modulus) to the user application.
+	 * <p>
+	 * response APDU (for exponent request):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * 2 bytes: length of exponent
+	 * * n bytes: exponent (up to 4 bytes)
+	 * response APDU (for modulus request):
+	 * * 1 byte: REPONSE_SUCCEEDED
+	 * * 2 bytes: number of bytes sent this time
+	 * * 2 bytes: bytes remaining to send
+	 * * n bytes: modulus (up to MAX_PUBKEY_SEND_LENGTH bytes)
+	 * response APDU (in case of wrong input data):
+	 * * SW: SW_WRONG_LENGTH (0x6700) or SW_WRONG_DATA(0x6A80)
+	 * response APDU (in case of crypto errors):
+	 * * SW: SW_CRYPTO_EXCEPTION (0xF100)
+	 * response APDU (in case of unrecognized request type):
+	 * * 1 byte: RESPONSE_FAILED
+	 *
+	 * @param apdu Request APDU formatted this way:
+	 *             * 1 byte: type of request -- PUBKEY_GET_EXPONENT or PUBKEY_GET_MODULUS
+	 *             * 2 bytes: start byte (if requesting modulus-continue) or 00 00 (otherwise)
+	 */
 	protected void getCardPubKey(APDU apdu)
 	{
 		byte[] buffer = apdu.getBuffer();   // buffer to hold the header
-		short length  = apdu.setIncomingAndReceive();
+		short length = apdu.setIncomingAndReceive();
+		if (length != (short)3)
+			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+		if ((short)-length != (short)-3)
+			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 
-		/* in:
-		 *    1 byte: type of request -- PUBKEY_GET_EXPONENT or PUBKEY_GET_MODULUS
-		 *    2 bytes: start byte (if requesting modulus-continue) or 00 00 (otherwise)
-		 * out (for exponent):
-		 *    1 byte: RESPONSE_SUCCEEDED
-		 *    2 bytes: length of exponent
-		 *    n bytes: exponent (up to 4 bytes)
-		 * out (for modulus):
-		 *    1 byte: REPONSE_SUCCEEDED
-		 *    2 bytes: number of bytes sent this time
-		 *    2 bytes: bytes remaining to send
-		 *    n bytes: modulus (up to MAX_PUBKEY_SEND_LENGTH bytes)
-		 *
-		 * The first PUBKEY_GET_MODULUS request must request offset 0 of the modulus.
-		*/
-		short lengthOut = 0;
+		short lengthOut = (short)1;
 		byte command = buffer[ISO7816.OFFSET_CDATA];
-                //getting public key exponent
-		if(command == PUBKEY_GET_EXPONENT) {
-			// getting the card public key
-			RSAPublicKey key = (RSAPublicKey) card_key.getPublic();
-                        
-                        if(key!=null)
-                        {   // getting the exponent
-                            short exponentLength = key.getExponent(buffer, PUBKEY_RESPONSE_EXPONENT_IDX);
-                            Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, exponentLength);
-                            buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-                        
+		short offset = Util.getShort(buffer, PUBKEY_REQUEST_OFFSET_IDX);
+		short ret_key_length = (short)0;
+		// default to FAILED to manage errors more easily
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+		try {
+			if (command == PUBKEY_GET_EXPONENT) {
+				// getting public key exponent
 
-			lengthOut = (short)(exponentLength + PUBKEY_RESPONSE_EXPONENT_OFFSET);
-                        }
-                        else
-                        {
-                          buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-                          
-                        }
-		} else if (command == PUBKEY_GET_MODULUS) //getting the modulus
-                {
-			short offset = Util.getShort(buffer, PUBKEY_REQUEST_OFFSET_IDX);
-			if(offset == (short)0) 
-                        {   // Fault Induction check
-                            if((short)-offset == (short)0)
-                            {
-				// Initial modulus request -- store public key in scratch buffer.
-				RSAPublicKey key = (RSAPublicKey) card_key.getPublic();
-                                if(key!=null)
-                                {
-				rsa_modulus_length = key.getModulus(scratch_area, (short)0);
-			        }
-                                else
-                                { buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-                                }
-                           }
-                   
-			// calculating the length of key
-			short amountToSend = (short)(rsa_modulus_length - offset);
+				if (offset != (short)0)
+					ISOException.throwIt(ISO7816.SW_WRONG_DATA);
 
-			// clamp amountToSend between 0 and maximum buffer length.
-			if(amountToSend > PUBKEY_MAX_SEND_LENGTH)
-				amountToSend = PUBKEY_MAX_SEND_LENGTH;
-			if(amountToSend < 0)
-                        {  //Fault Induction check
-                            if((short)-amountToSend >0)
-                            {	amountToSend = 0;
-                            
-                            }
-                        }
-                        
-			Util.arrayCopy(scratch_area, offset, buffer, PUBKEY_RESPONSE_MODULUS_IDX, amountToSend);
-                        
-			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-			Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, amountToSend);
-			Util.setShort(buffer, PUBKEY_RESPONSE_REMAIN_IDX, (short)(rsa_modulus_length - offset - amountToSend));
-			lengthOut = (short)(amountToSend + PUBKEY_RESPONSE_MODULUS_OFFSET);
-		} else 
-                        {
-			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-                        }
-                // sending the length of key to user
+				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
+				if (!key.isInitialized())
+					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
+				ret_key_length = key.getExponent(buffer, PUBKEY_RESPONSE_EXPONENT_IDX);
+				// prevent Fault Induction on key.getExponent
+				if (ret_key_length == (short)0) // don't need second FI check, too near
+					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
+
+				Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, ret_key_length);
+				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+				lengthOut = (short)(ret_key_length + PUBKEY_RESPONSE_EXPONENT_OFFSET);
+				// Fault Induction prevention, to prevent sending unknown buffer data
+				lengthOut = (short)(ret_key_length + PUBKEY_RESPONSE_EXPONENT_OFFSET);
+			} else if (command == PUBKEY_GET_MODULUS) { //getting the modulus
+				// Always rewrite public modulus in scratch buffer, prevents reading of arbitrary scratch_area positions
+				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
+				if (!key.isInitialized())
+					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
+				ret_key_length = key.getModulus(scratch_area, (short)0);
+				// prevent Fault Induction on key.getModulus
+				if (ret_key_length == (short)0) // don't need second FI check, too near
+					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
+
+				// calculating the length of key
+				short amountToSend = (short)(ret_key_length - offset);
+
+				// clamp amountToSend between 0 and maximum buffer length.
+				if (amountToSend > PUBKEY_MAX_SEND_LENGTH)
+					if ((short)-amountToSend < (short)-PUBKEY_MAX_SEND_LENGTH) // Fault Induction check
+						amountToSend = PUBKEY_MAX_SEND_LENGTH;
+				if (amountToSend < 0)
+					if ((short)-amountToSend > 0) // Fault Induction check
+						amountToSend = 0;
+
+				Util.arrayCopy(scratch_area, offset, buffer, PUBKEY_RESPONSE_MODULUS_IDX, amountToSend);
+
+				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+				Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, amountToSend);
+				Util.setShort(buffer, PUBKEY_RESPONSE_REMAIN_IDX, (short)(ret_key_length - offset - amountToSend));
+				lengthOut = (short)(amountToSend + PUBKEY_RESPONSE_MODULUS_OFFSET);
+				// Fault Induction prevention, to prevent sending unknown buffer data
+				lengthOut = (short)(amountToSend + PUBKEY_RESPONSE_MODULUS_OFFSET);
+			} // else nothing has changed: lengthOut == 1, RESPONSE_FAILED
+		} catch (CryptoException e) {
+			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
+		}
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, lengthOut);
 	}
-        }
-	//method to share AES password key required for decryption of block thru PKI means
+
+	/**
+	 * Method to share AES password key required for decryption of database.
+	 * <p>
+	 * This method assumes that the client has alrady written its Password Key,
+	 * encrypted with the Card Key, to the scratch area (with 0x76, writeToScratch instruction).
+	 * This is assumed to be long RSA_KEYLENGTH / 8.
+	 * <p>
+	 * response APDU (in case of correct storage of Password Kay):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * response APDU (in case of provided input):
+	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 * response APDU (in case of decrypt error):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 *
+	 * @param apdu Request APDU, empty.
+	 */
 	protected void setPasswordKey(APDU apdu)
 	{
-		/* The the password key (the private AES key which is used as the decryption key in decryptBlock()).
-		 * Password key is encrypted with the card key and we expect it to be stored in the scratch area, i.e.
-		 * that writeToScratchArea() has been invoked one or more times prior to this command..
-		 *
-		 * In: Nothing
-		 * Out: success / fail (one byte)
-		*/
-
-		byte[] buffer = apdu.getBuffer();
-		short length  = apdu.setIncomingAndReceive();
-
-		decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
-		password_key.setKey(aes_key_temporary, (short)0);
-		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-	}
-
-
-	protected void prepareDecryption(APDU apdu)
-	{
-		/* Decrypt the transaction key and set up AES engines for decryption.
-		 *
-		 * scratch area contains: transaction key, encrypted with card key
-		 * 16 bytes: IV for transaction key (plaintext)
-		 * 16 bytes: IV for password key (plaintext)
-		*/
-		byte[] buffer = apdu.getBuffer();
-		short length  = apdu.setIncomingAndReceive();
-
-		if(length == 32) {
-                    // Fault Induction check
-                    if((short)-length == (short)-32) {
-			decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
-			transaction_key.setKey(aes_key_temporary, (short)0);
-			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-
-			transaction_cipher.init(transaction_key, Cipher.MODE_ENCRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 0), (short)16);
-			password_cipher.init(password_key, Cipher.MODE_DECRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 16), (short)16);
-
-			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-                    } else { 
-			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
-                    }
-                } else { 
-                    buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
-		}
-
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-	}
-
-	protected void decryptBlock(APDU apdu)
-	{
-		/* Decrypt the block with the password key, then encrypt it with the transaction key. */
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
-		boolean succeeded = false;
+		// check that length of incoming data is 0, with fault induction prevention
+		if (length == (short)0)
+			if ((short)-length == (short)0) {
+				decryptWithCardKey(scratch_area, (short)0, password_key);
+				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+				ISOException.throwIt(ISO7816.SW_NO_ERROR);
+			}
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+	}
 
-		short decrypted = 0;
+
+	/**
+	 * Decrypt the transaction key and set up AES engines for decryption.
+	 * <p>
+	 * This method assumes that the client has alrady configured the card
+	 * with its Password Key.
+	 * <p>
+	 * This method assumes that the client has alrady written its Transaction Key,
+	 * encrypted with the Card Key, to the scratch area (with 0x76, writeToScratch instruction).
+	 * This is assumed to be long RSA_KEYLENGTH / 8.
+	 * <p>
+	 * response APDU (in case of correct storage of Password Kay):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * response APDU (in case of incorrect length of provided input):
+	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 * response APDU (in case of crypto error):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 *
+	 * @param apdu Request APDU formatted this way:
+	 *             * 16 bytes: IV for transaction key (plaintext)
+	 *             * 16 bytes: IV for password key (plaintext)
+	 */
+	protected void prepareDecryption(APDU apdu)
+	{
+		byte[] buffer = apdu.getBuffer();
+		short length = apdu.setIncomingAndReceive();
+		// check that length of incoming data is 32, with fault induction prevention
+		if (length == 32)
+			if ((short)-length == (short)-32) {
+				decryptWithCardKey(scratch_area, (short)0, transaction_key);
+				try { // catch crypto exceptions
+					transaction_cipher.init(transaction_key, Cipher.MODE_ENCRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 0), (short)16);
+					password_cipher.init(password_key, Cipher.MODE_DECRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 16), (short)16);
+				} catch (CryptoException e) {
+					// cleanup sensitive data
+					transaction_key.clearKey();
+					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+				}
+				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+				ISOException.throwIt(ISO7816.SW_NO_ERROR);
+			}
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+	}
+
+	/**
+	 * Decrypt a block of the database.
+	 *
+	 * response APDU (in case of correct decryption):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * n bytes: decrypted block, encrypted with Transaction Key
+	 * response APDU (in case of crypto error):
+	 * * 1 byte: RESPONSE_FAILED
+	 *
+	 * @param apdu Request APDU containing encrypted data, already padded.
+	 *             If P1 contains 0x80, the block is considered to be the last.
+	 */
+	protected void decryptBlock(APDU apdu)
+	{
+		byte[] buffer = apdu.getBuffer();
+		short length = apdu.setIncomingAndReceive();
+
+		short encrypted = 0;
 		try {
-			if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {	// Not last block;
+			short decrypted = 0;
+			if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {    // Not last block;
 				decrypted = password_cipher.update(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
-			} else {										// Last block;
+			} else {                                          // Last block;
 				decrypted = password_cipher.doFinal(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
 			}
-			if(decrypted > 0) 
-                        {  if((short)-decrypted <(short)0)
-                        
-                            {
-				/* We decrypted the blocks successfully, now re-encrypt with the transaction key. */
-				short encrypted = transaction_cipher.update(scratch_area, (short)0, decrypted, buffer, (short)(ISO7816.OFFSET_CDATA + 1));
-				if(encrypted > 0)
-                                  {  if((short)-encrypted <(short)0)
-                                    {
-					/* We encrypted the new block successfully. */
-					succeeded = true;
-                                    }
-                                    else
-                                  {
-                                      succeeded=false;
-                                  }
-                                  }
-                            }
-                       }
-
-			buffer[RESPONSE_STATUS_OFFSET] = succeeded ? RESPONSE_SUCCEEDED : RESPONSE_FAILED;
+			// default to failed status, so only if everything is good it is set to RESPONSE_SUCCEEDED
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			if (decrypted > 0) {
+				if ((short)-decrypted < (short)0) { // Fault induction check
+					/* We decrypted the blocks successfully, now re-encrypt with the transaction key. */
+					if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {    // Not last block;
+						encrypted = transaction_cipher.update(scratch_area, (short)0, decrypted, buffer, (short)(RESPONSE_STATUS_OFFSET + 1));
+					} else {                                          // Last block;
+						encrypted = transaction_cipher.doFinal(scratch_area, (short)0, decrypted, buffer, (short)(RESPONSE_STATUS_OFFSET + 1));
+					}
+					if (encrypted > 0) {
+						if ((short)-encrypted < (short)0) { // Fault induction check
+							/* We encrypted the new block successfully. */
+							buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+						} else {
+							encrypted = 0;
+						}
+					} else {
+						encrypted = 0;
+					}
+				}
+			}
 		} catch (CryptoException e) {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-			decrypted = 0;
+			encrypted = 0;
+		} catch (ArrayIndexOutOfBoundsException e) {
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			encrypted = 0;
 		} finally {
+			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		}
 
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)(decrypted + 1));
+		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)(encrypted + 1));
 	}
 
+	/**
+	 * Method to get the current applet version.
+	 *
+	 * response APDU (in case of correct generation):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * 1 byte: VERSION
+	 *
+	 * @param apdu Request APDU, empty (no check).
+	 */
 	protected void getVersion(APDU apdu)
 	{
 		byte[] buffer = apdu.getBuffer();
-		short length = apdu.setIncomingAndReceive();
-                
+		apdu.setIncomingAndReceive();
+
 		buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
 		buffer[ISO7816.OFFSET_CDATA + 1] = VERSION;
-                // sending the version of Applet
+		// sending the version of Applet
 		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)2);
 	}
 
+	/**
+	 * Method to generate a new Card Key pair.
+	 * <p>
+	 * response APDU (in case of correct generation):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * 2 bytes: Key length (bits)
+	 * response APDU (in case of provided input):
+	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 * response APDU (in case of crypto error):
+	 * * SW: 0xF100 | e.getReason() (INVALID_INIT in case of keys not initialized after genKeyPair())
+	 *
+	 * @param apdu Request APDU, empty.
+	 */
 	protected void generateCardKey(APDU apdu)
 	{
-		/* in: nothing
-		 * out: two bytes indicating the length of the key
-		 */
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
-		card_cipher_initialised = false;
-		card_key.genKeyPair();
-                
-                // checking card keys are generated correctly or not
-                if (card_key != null)
-                {buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
-		buffer[ISO7816.OFFSET_CDATA + 1] = (RSA_KEYLENGTH >> 8) & 0xFF;
-		buffer[ISO7816.OFFSET_CDATA + 2] = (RSA_KEYLENGTH & 0xFF);
+		if (length != (short)0) {
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+		}
+		try {
+			card_key.genKeyPair();
+		} catch (CryptoException e) {
+			card_key.getPrivate().clearKey();
+			card_key.getPublic().clearKey();
+			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
+		}
 
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)3);
-                }
-                else
-                {
-                  buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED; 
-                  apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-                }
+		// checking card keys are generated correctly or not
+		if (card_key.getPublic().isInitialized() && card_key.getPrivate().isInitialized()) {
+			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
+			Util.setShort(buffer, (short)(ISO7816.OFFSET_CDATA + 1), RSA_KEYLENGTH);
+			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)3);
+		} else {
+			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
+			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.INVALID_INIT));
+		}
 	}
 
+	/**
+	 * Save raw data to scratch area. This data is then used by other functions.
+	 * <p>
+	 * response APDU (in case of correct storage of Password Kay):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * 2 bytes: amount of free space after saved data
+	 * response APDU (in case of incorrect length of provided input):
+	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 *
+	 * @param apdu Request APDU formatted this way:
+	 *             * 2 bytes: offset from which to write in scratch
+	 *             * n bytes: actual data
+	 */
 	protected void writeToScratch(APDU apdu)
 	{
-		/* in: 2 bytes: offset in scratch
-		 *     n bytes: data
-		 * out: success | fail
-		 */
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
 		short offset = Util.getShort(buffer, ISO7816.OFFSET_CDATA);
-            if ((short)scratch_area.length > (short)(offset + length - 2)){
-		Util.arrayCopy(buffer, (short)(ISO7816.OFFSET_CDATA + 2), scratch_area, offset, (short)(length - 2));
-
-		buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
-
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-            }
-            else {
-                buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-            }
+		// check the data length fits into the scratch area, prevent fault induction
+		if ((short)scratch_area.length >= (short)(offset + length - 2)) {
+			if ((short)(scratch_area.length + 2) >= (short)(offset + length)) {
+				Util.arrayCopy(buffer, (short)(ISO7816.OFFSET_CDATA + 2), scratch_area, offset, (short)(length - 2));
+				buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
+				Util.setShort(buffer, (short)(ISO7816.OFFSET_CDATA + 1), (short)(scratch_area.length - offset - length + 2));
+				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)3);
+				ISOException.throwIt(ISO7816.SW_NO_ERROR);
+			}
+		}
+		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
 
-// method to decrypt the AES keys which are encrypted with RSA pub key and been sent by the user application to the applet
-	private boolean decryptWithCardKey(byte[] input, short offset, byte[] output)
+	/**
+	 * Method to decrypt the AES keys which are encrypted with Card Public key and have been sent by the client to the applet.
+	 *
+	 * @param input  Input byte array containing encrypted key.
+	 * @param offset Offset from which the encrypted key starts.
+	 * @param output Output byte array where to save decrypted key.
+	 * @return Length of decrypted key.
+	 */
+	private short decryptWithCardKey(byte[] input, short offset, AESKey output)
 	{
-		if(!card_cipher_initialised) {
-                        // getting the private key
+		// throw error on invalid array length
+		if ((short)(input.length - offset) < (short)(RSA_KEYLENGTH / 8))
+			ISOException.throwIt((short)(ISO7816.SW_WRONG_LENGTH | 0x01));
+		if ((short)(aes_key_temporary.length) < (short)(RSA_KEYLENGTH / 8))
+			ISOException.throwIt((short)(ISO7816.SW_WRONG_LENGTH | 0x02));
+
+		short decryptedBytes = 0;
+		try { // catch crypto exceptions
+			// getting the private key
 			RSAPrivateCrtKey private_key = (RSAPrivateCrtKey)card_key.getPrivate();
-                        // initialising the cipher
+			// initialising the cipher
 			card_cipher.init(private_key, Cipher.MODE_DECRYPT);
-                        // checking of initialisation of card cipher
-                        if(card_cipher!=null)
-			  card_cipher_initialised = true;
-                        else
-                            card_cipher_initialised = false;
+			// performing the decryption
+			decryptedBytes = card_cipher.doFinal(input, offset, (short)(RSA_KEYLENGTH / 8), aes_key_temporary, (short)0);
+			if (decryptedBytes == (short)0)
+				throw new CryptoException(CryptoException.ILLEGAL_USE);
+			output.setKey(aes_key_temporary, (short)0);
+			if (!output.isInitialized())
+				throw new CryptoException(CryptoException.INVALID_INIT);
+		} catch (CryptoException e) {
+			// cleanup sensitive data, with fault induction prevention
+			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+			output.clearKey();
+			decryptedBytes = 0;
+			throw e;
+		} finally {
+			// cleanup sensitive data, with fault induction prevention
+			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		}
-                // performing the decryption
-		card_cipher.doFinal(input, offset, (short)(RSA_KEYLENGTH / 8), output, (short)0);
-		return true;
+		return decryptedBytes;
 	}
 }
