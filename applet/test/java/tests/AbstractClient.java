@@ -363,7 +363,7 @@ abstract public class AbstractClient {
 			ResponseAPDU response = sendAPDU(channel, apdu);
 
 			// This is encrypted with the transaction key, so decrypt it.
-			byte[] decrypted = decryptWithTransactionKey(response.getBytes(), 1, 16, transactionKey, transactionIv);
+			byte[] decrypted = decryptWithTransactionKey(response.getData(), 1, response.getData().length - 1, transactionKey, transactionIv);
 			if (decrypted != null) {
 				for (byte b : decrypted) {
 					System.out.print(Integer.toHexString(b & 0xff) + ' ');
