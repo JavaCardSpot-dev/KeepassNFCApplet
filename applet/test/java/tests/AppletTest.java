@@ -195,4 +195,25 @@ public class AppletTest {
 		} catch (CardException ignored) {
 		}
 	}
+
+	@Test(groups = {"Failing"})
+	public void uninitializedCardKeySettingPasswordKey() throws Exception
+	{
+		try {
+			client.sendAPDU(client.getCardMngr(), client.constructApdu((byte)0x71));
+			Assert.fail("setPasswordKey should throw error if card hasn't any key.");
+		} catch (CardException ignored) {
+		}
+	}
+
+	@Test(groups = {"Failing"})
+	public void uncorrectLengthPasswordKey() throws Exception
+	{
+		try {
+			byte[] apdu = client.constructApdu((byte)0x71, new byte[]{0x01, 0x02});
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("setPasswordKey should throw error if data is provided in request APDU.");
+		} catch (CardException ignored) {
+		}
+	}
 }

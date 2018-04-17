@@ -214,40 +214,56 @@ public class KeepassNFC extends Applet {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 			lengthOut = (short)1;
 			lengthOut = (short)1; // Fault Induction prevention, to prevent sending unknown buffer data
-			ISOException.throwIt(e.getReason());
+			throw e;
 		} finally {
 			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, lengthOut);
 		}
 	}
 
-	//method to share AES password key required for decryption of block thru PKI means
+	/**
+	 * Method to share AES password key required for decryption of database.
+	 * <p>
+	 * This method assumes that the client has alrady written its Password Key,
+	 * encrypted with the Card Key, to the scratch area (with 0x76, writeToScratch instruction).
+	 * This is assumed to be long RSA_KEYLENGTH / 8.
+	 * <p>
+	 * response APDU (in case of correct storage of Password Kay):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * response APDU (in case of provided input):
+	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 * response APDU (in case of decrypt error):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 *
+	 * @param apdu Request APDU, empty.
+	 */
 	protected void setPasswordKey(APDU apdu)
 	{
-		/* The the password key (the private AES key which is used as the decryption key in decryptBlock()).
-		 * Password key is encrypted with the card key and we expect it to be stored in the scratch area, i.e.
-		 * that writeToScratchArea() has been invoked one or more times prior to this command..
-		 *
-		 * In: Nothing
-		 * Out: success / fail (one byte)
-		 */
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
-		if (scratch_area.length >= length) {   //the length of received key is compared for scratch area overflow
-			decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
-			if (aes_key_temporary.length != 0) {   //check for key if it exist
-				password_key.setKey(aes_key_temporary, (short)0);
-				Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-				Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		// check that length of incoming data is 0, with fault induction prevention
+		if (length == (short)0)
+			if ((short)-length == (short)0) {
+				try { // catch crypto exceptions
+					decryptWithCardKey(scratch_area, (short)0, aes_key_temporary);
+					password_key.setKey(aes_key_temporary, (short)0);
+				} catch (CryptoException e) {
+					// cleanup sensitive data, with fault induction prevention
+					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+					password_key.clearKey();
+					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+				} finally {
+					// cleanup sensitive data, with fault induction prevention
+					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+					Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+				}
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1); //send response back
-			} else {                  // throw error for failure to receive key
-				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+				ISOException.throwIt(ISO7816.SW_NO_ERROR);
 			}
-		} else {                  // throw error for scratch area overflow
-			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-		}
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
 
 
