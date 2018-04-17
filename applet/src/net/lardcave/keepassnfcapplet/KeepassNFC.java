@@ -495,6 +495,8 @@ public class KeepassNFC extends Applet {
 			if (decryptedBytes == (short)0)
 				throw new CryptoException(CryptoException.ILLEGAL_USE);
 			output.setKey(aes_key_temporary, (short)0);
+			if (!output.isInitialized())
+				throw new CryptoException(CryptoException.INVALID_INIT);
 		} catch (CryptoException e) {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
