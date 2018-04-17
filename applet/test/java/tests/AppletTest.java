@@ -2,6 +2,7 @@ package tests;
 
 import cardTools.CardManager;
 import cardTools.RunConfig;
+import cardTools.Util;
 import net.lardcave.keepassnfcapplet.KeepassNFC;
 import org.junit.Assert;
 import org.testng.annotations.*;
@@ -9,6 +10,7 @@ import org.testng.annotations.*;
 import javax.crypto.IllegalBlockSizeException;
 import javax.smartcardio.CardException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
 
 /**
  * Test class for KeepassNFC applet
@@ -138,20 +140,38 @@ public class AppletTest {
 		}
 	}
 
-	@Test(dependsOnGroups = {"Configuring"})
-	public void cardDecrypt() throws Exception
+	public void cardDecrypt(byte[] data) throws Exception
 	{
 		client.generateCardKey();
 		client.setNewPasswordKey();
 		client.setPasswordKeyIv();
-		byte[] data = "TestDataCorrectLengthThats32Byte".getBytes();
 		System.out.print(data.length);
 		System.out.println(" bytes to encrypt");
 		byte[] encryptedData = client.encrypt(data);
 		System.out.print(encryptedData.length);
 		System.out.println(" bytes to decrypt");
 		byte[] decryptedData = client.decrypt(encryptedData);
-		Assert.assertEquals(data, decryptedData);
+		Assert.assertNotNull(decryptedData);
+		System.out.println("Prior: " + Util.toHex(data));
+		System.out.println("After: " + Util.toHex(decryptedData));
+		Assert.assertTrue(Arrays.equals(data, decryptedData));
+	}
+	@Test(dependsOnGroups = {"Configuring"})
+	public void cardDecrypt16() throws Exception
+	{
+		cardDecrypt("TestDataCorrectL".getBytes());
+	}
+
+	@Test(dependsOnGroups = {"Configuring"})
+	public void cardDecrypt32() throws Exception
+	{
+		cardDecrypt("TestDataCorrectLengthThats32Byte".getBytes());
+	}
+
+	@Test(dependsOnGroups = {"Configuring"})
+	public void cardDecrypt64() throws Exception
+	{
+		cardDecrypt("TestDataCorrectLengthThats32ByteTestDataCorrectLengthThats32Byte".getBytes());
 	}
 
 	@Test(groups = {"Failing"})
