@@ -261,4 +261,16 @@ public class AppletTest {
 		}
 	}
 
+	@Test(groups = {"Failing"})
+	public void incorrectLengthWriteToScratch() throws Exception
+	{
+		try {
+			// 0x104 = 260 is current length of scratch area. Testing with 0x102 length and 3 bytes goes after the end.
+			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_WRITE_TO_SCRATCH, new byte[]{0x01, 0x02, 0x03, 0x04, 0x05});
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("writeToScratch should throw error if data provided would go after the end of scratch area array.");
+		} catch (CardException ignored) {
+		}
+	}
+
 }
