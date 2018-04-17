@@ -300,47 +300,63 @@ public class KeepassNFC extends Applet {
 		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
 
+	/**
+	 * Decrypt a block of the database.
+	 *
+	 * response APDU (in case of correct decryption):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * n bytes: decrypted block, encrypted with Transaction Key
+	 * response APDU (in case of crypto error):
+	 * * 1 byte: RESPONSE_FAILED
+	 *
+	 * @param apdu Request APDU containing encrypted data, already padded.
+	 *             If P1 contains 0x80, the block is considered to be the last.
+	 */
 	protected void decryptBlock(APDU apdu)
 	{
-		/* Decrypt the block with the password key, then encrypt it with the transaction key. */
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
-		boolean succeeded = false;
 
-		short decrypted = 0;
+		short encrypted = 0;
 		try {
+			short decrypted = 0;
 			if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {    // Not last block;
 				decrypted = password_cipher.update(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
-			} else {                                        // Last block;
+			} else {                                          // Last block;
 				decrypted = password_cipher.doFinal(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
 			}
+			// default to failed status, so only if everything is good it is set to RESPONSE_SUCCEEDED
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 			if (decrypted > 0) {
-				if ((short)-decrypted < (short)0)
-
-				{
+				if ((short)-decrypted < (short)0) { // Fault induction check
 					/* We decrypted the blocks successfully, now re-encrypt with the transaction key. */
-					short encrypted = transaction_cipher.update(scratch_area, (short)0, decrypted, buffer, (short)(ISO7816.OFFSET_CDATA + 1));
+					if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {    // Not last block;
+						encrypted = transaction_cipher.update(scratch_area, (short)0, decrypted, buffer, (short)(RESPONSE_STATUS_OFFSET + 1));
+					} else {                                          // Last block;
+						encrypted = transaction_cipher.doFinal(scratch_area, (short)0, decrypted, buffer, (short)(RESPONSE_STATUS_OFFSET + 1));
+					}
 					if (encrypted > 0) {
-						if ((short)-encrypted < (short)0) {
+						if ((short)-encrypted < (short)0) { // Fault induction check
 							/* We encrypted the new block successfully. */
-							succeeded = true;
+							buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 						} else {
-							succeeded = false;
+							encrypted = 0;
 						}
+					} else {
+						encrypted = 0;
 					}
 				}
 			}
-
-			buffer[RESPONSE_STATUS_OFFSET] = succeeded ? RESPONSE_SUCCEEDED : RESPONSE_FAILED;
 		} catch (CryptoException e) {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-			decrypted = 0;
+			encrypted = 0;
 		} finally {
+			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		}
 
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)(decrypted + 1));
+		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)(encrypted + 1));
 	}
 
 	protected void getVersion(APDU apdu)
