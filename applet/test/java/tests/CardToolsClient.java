@@ -100,9 +100,15 @@ public class CardToolsClient extends AbstractClient {
 		return Util.hexStringToByteArray(s);
 	}
 
+	@Override
 	public ResponseAPDU sendAPDU(CardChannel channel, final CommandAPDU request) throws CardException
 	{
-		ResponseAPDU resp = channel.transmit(request);
+		return sendAPDU(request);
+	}
+
+	public ResponseAPDU sendAPDU(final CommandAPDU request) throws CardException
+	{
+		ResponseAPDU resp = getCardMngr().transmit(request);
 		System.out.printf("Response SW is %02X", resp.getSW());
 		if (resp.getSW() != 0x9000) {
 			System.out.println(" - ERROR");
@@ -135,14 +141,14 @@ public class CardToolsClient extends AbstractClient {
 		return resp;
 	}
 
-	public ResponseAPDU sendAPDU(CardManager cardMngr, final String request) throws CardException
+	public ResponseAPDU sendAPDU(byte[] apdu) throws CardException
 	{
-		return sendAPDU(cardMngr.getChannel(), Util.hexStringToByteArray(request));
+		return sendAPDU(new CommandAPDU(apdu));
 	}
 
-	public ResponseAPDU sendAPDU(CardManager cardMngr, byte[] apdu) throws CardException
+	public ResponseAPDU sendAPDU(final String request) throws CardException
 	{
-		return sendAPDU(cardMngr.getChannel(), new CommandAPDU(apdu));
+		return sendAPDU(Util.hexStringToByteArray(request));
 	}
 
 	public CardManager installSelectApplet(byte[] installData) throws CardException
@@ -184,22 +190,21 @@ public class CardToolsClient extends AbstractClient {
 	 * Sending command to the card.
 	 * Enables to send init commands before the main one.
 	 *
-	 * @param cardMngr     CardManager to use
 	 * @param command      main command to execute
 	 * @param initCommands commands needed by main one to succeed
 	 * @return ResponseAPDU of last command
 	 * @throws CardException propagated during command execution
 	 */
-	public ResponseAPDU sendCommandWithInitSequence(CardManager cardMngr, String command, ArrayList<String> initCommands)
+	public ResponseAPDU sendCommandWithInitSequence(String command, ArrayList<String> initCommands)
 			throws CardException
 	{
 		if (initCommands != null) {
 			for (String cmd : initCommands) {
-				sendAPDU(cardMngr, cmd);
+				sendAPDU(cmd);
 			}
 		}
 
-		return sendAPDU(cardMngr, command);
+		return sendAPDU(command);
 	}
 
 	@Override

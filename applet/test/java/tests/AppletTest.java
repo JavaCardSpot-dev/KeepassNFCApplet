@@ -180,7 +180,7 @@ public class AppletTest {
 		try {
 			byte[] apdu = client.constructApdu((byte)0x00);
 			apdu[0] = 0x00;
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("Unsupported CLA should throw errors.");
 		} catch (CardException ignored) {
 		}
@@ -190,7 +190,7 @@ public class AppletTest {
 	public void unsupportedINS() throws Exception
 	{
 		try {
-			client.sendAPDU(client.getCardMngr(), client.constructApdu((byte)0x00));
+			client.sendAPDU(client.constructApdu((byte)0x00));
 			Assert.fail("Unsupported INS should throw errors.");
 		} catch (CardException ignored) {
 		}
@@ -200,7 +200,7 @@ public class AppletTest {
 	public void uninitializedCardKeySettingPasswordKey() throws Exception
 	{
 		try {
-			client.sendAPDU(client.getCardMngr(), client.constructApdu((byte)0x71));
+			client.sendAPDU(client.constructApdu((byte)0x71));
 			Assert.fail("setPasswordKey should throw error if card hasn't any key.");
 		} catch (CardException ignored) {
 		}
@@ -211,7 +211,7 @@ public class AppletTest {
 	{
 		try {
 			byte[] apdu = client.constructApdu((byte)0x71, new byte[]{0x01, 0x02});
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("setPasswordKey should throw error if data is provided in request APDU.");
 		} catch (CardException ignored) {
 		}
@@ -221,7 +221,7 @@ public class AppletTest {
 	public void uninitializedCardKeySettingTransactionKey() throws Exception
 	{
 		try {
-			client.sendAPDU(client.getCardMngr(), AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]));
+			client.sendAPDU(AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]));
 			Assert.fail("prepareDecryption should throw error if card hasn't any key.");
 		} catch (CardException ignored) {
 		}
@@ -232,19 +232,19 @@ public class AppletTest {
 	{
 		try {
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION);
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("prepareDecryption should throw error if no data is provided in request APDU.");
 		} catch (CardException ignored) {
 		}
 		try {
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[16]);
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("prepareDecryption should throw error if incorrect data length (16) is provided in request APDU.");
 		} catch (CardException ignored) {
 		}
 		try {
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[64]);
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("prepareDecryption should throw error if incorrect data length (64) is provided in request APDU.");
 		} catch (CardException ignored) {
 		}
@@ -255,7 +255,7 @@ public class AppletTest {
 	{
 		try {
 			byte[] apdu = client.constructApdu(AbstractClient.INS_CARD_GENERATE_CARD_KEY, new byte[]{0x01, 0x02});
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("generateCardKey should throw error if data is provided in request APDU.");
 		} catch (CardException ignored) {
 		}
@@ -267,7 +267,7 @@ public class AppletTest {
 		try {
 			// 0x104 = 260 is current length of scratch area. Testing with 0x102 length and 3 bytes goes after the end.
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_WRITE_TO_SCRATCH, new byte[]{0x01, 0x02, 0x03, 0x04, 0x05});
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("writeToScratch should throw error if data provided would go after the end of scratch area array.");
 		} catch (CardException ignored) {
 		}
@@ -279,13 +279,13 @@ public class AppletTest {
 		// expects 3 bytes, test with less and more
 		try {
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{0x01, 0x02});
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("getCardPubKey should throw error if data provided is not 3 bytes.");
 		} catch (CardException ignored) {
 		}
 		try {
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{0x01, 0x02, 0x03, 0x04});
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("getCardPubKey should throw error if data provided is not 3 bytes.");
 		} catch (CardException ignored) {
 		}
@@ -296,7 +296,7 @@ public class AppletTest {
 		// tests incorrect MasterPIN
 		try {
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_VERIFY_MasterPIN, new byte[]{0x36, 0x32,0x33,0x34,0x35,0x36});
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("VerifyMasterPIN should throw error if Master PIN doesn't match.");
 		} catch (CardException ignored) {
 		}
@@ -308,7 +308,7 @@ public class AppletTest {
 		// tests incorrect MasterPIN
 		try {
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_VERIFY_UserPIN, new byte[]{0x36, 0x32,0x33,0x34});
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("VerifyUserPIN should throw error if Master PIN doesn't match.");
 		} catch (CardException ignored) {
 		}
@@ -319,7 +319,7 @@ public class AppletTest {
 		// test failure of setting of user PIN
 		try {
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_SET_UserPIN, new byte[]{0x34, 0x37,0x39,0x36});
-			client.sendAPDU(client.getCardMngr(), apdu);
+			client.sendAPDU(apdu);
 			Assert.fail("SetUserPIN should throw error if user PIN doesn't set.");
 		} catch (CardException ignored) {
 		}
