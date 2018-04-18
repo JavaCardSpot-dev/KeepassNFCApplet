@@ -290,4 +290,16 @@ public class AppletTest {
 		} catch (CardException ignored) {
 		}
 	}
+        @Test(groups = {"Failing"})
+	public void incorrectMaster_PIN() throws Exception
+	{
+		// tests incorrect MasterPIN
+		try {
+			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_VERIFY_MasterPIN, new byte[]{0x36, 0x32,0x33,0x34,0x35,0x36});
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("VerifyMasterPIN should throw error if Master PIN doesn't match.");
+		} catch (CardException ignored) {
+		}
+		
+	}
 }

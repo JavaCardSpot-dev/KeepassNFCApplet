@@ -41,7 +41,7 @@ abstract public class AbstractClient {
 	public final static byte INS_CARD_GET_VERSION = (byte)0x74;
 	public final static byte INS_CARD_GENERATE_CARD_KEY = (byte)0x75;
 	public final static byte INS_CARD_WRITE_TO_SCRATCH = (byte)0x76;
-
+        final static byte INS_VERIFY_MasterPIN = (byte) 0x77;
 	public final static byte RESPONSE_SUCCEEDED = (byte)0x1;
 	public final static byte RESPONSE_FAILED = (byte)0x2;
 
@@ -417,6 +417,17 @@ abstract public class AbstractClient {
 
 		return result;
 	}
+       /* public byte[] VerifyMasterPIN() throws CardException
+	{       CardChannel channel = getCardChannel();
+                
+		byte[] command = constructApdu(INS_VERIFY_MasterPIN);
+		ResponseAPDU response = sendAPDU(channel, command);
+		if (response.getSW()== RESPONSE_SUCCEEDED) {
+			System.out.println("Master PIN not Matched");
+			return null;
+		}
+		throw new CardException("Unknown error");
+	}*/
 
 	public static byte[] constructApdu(byte command)
 	{

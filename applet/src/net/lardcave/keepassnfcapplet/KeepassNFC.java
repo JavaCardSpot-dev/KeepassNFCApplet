@@ -6,7 +6,6 @@ package net.lardcave.keepassnfcapplet;
 import javacard.framework.*;
 import javacard.security.*;
 import javacardx.crypto.Cipher;
-
 // TODO: encrypt-then-MAC: http://crypto.stackexchange.com/questions/202/should-we-mac-then-encrypt-or-encrypt-then-mac
 
 public class KeepassNFC extends Applet {
@@ -194,12 +193,12 @@ public class KeepassNFC extends Applet {
         short dataLen = apdu.setIncomingAndReceive();
         if (Master_PIN.check(buffer, ISO7816.OFFSET_CDATA, (byte) dataLen) == false) {
             ISOException.throwIt(SW_BAD_PIN);
-            
             buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 	    apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
         }
         else 
-        { buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+        {  
+            buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
           apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
                
         }
