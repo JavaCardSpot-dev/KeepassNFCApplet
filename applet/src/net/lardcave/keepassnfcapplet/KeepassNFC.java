@@ -56,7 +56,6 @@ public class KeepassNFC extends Applet {
         private OwnerPIN User_PIN=null;
         private static byte[] Master_PIN_DEFAULT = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36 }; //default Master_PIN
         private static byte[] User_PIN_DEFAULT = { 0x31, 0x32, 0x33, 0x34 }; //default User_PIN
-        short flag=0;
 	//method to generate the three keys
 	protected KeepassNFC(byte[] bArray, short bOffset, byte bLength)
 	{
@@ -139,7 +138,6 @@ public class KeepassNFC extends Applet {
                                 case INS_VERIFY_UserPIN:   // For Verification of User PIN
                                     VerifyUserPIN(apdu);
                                     break;
-
 				case INS_CARD_GET_CARD_PUBKEY:    // Getting the card public key
 					getCardPubKey(apdu);
 					break;
@@ -181,45 +179,61 @@ public class KeepassNFC extends Applet {
 	private static final short PUBKEY_RESPONSE_EXPONENT_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_EXPONENT_OFFSET);
 	private static final short PUBKEY_RESPONSE_MODULUS_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_MODULUS_OFFSET);
  
-        // Method to verify Master PIN
+         /* Method to verify Master PIN 
+           *response APDU (in case of correct User PIN):
+	     * * 1 byte: RESPONSE_SUCCEEDED
+	   * response APDU (in case of incorrect User PIN):
+             * * 1 byte: RESPONSE_FAILED
+           * response APDU (in case of wrong input data):
+            * * SW: SW_BAD_PIN (0x6900) 
+        */ 
         protected void VerifyMasterPIN(APDU apdu) {
         byte[] buffer = apdu.getBuffer();
         short dataLen = apdu.setIncomingAndReceive();
-        // VERIFY Master PIN
         if (Master_PIN.check(buffer, ISO7816.OFFSET_CDATA, (byte) dataLen) == false) {
             ISOException.throwIt(SW_BAD_PIN);
-            flag=0;
+            
             buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 	    apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
         }
         else 
-        { flag=1;
-          buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+        { buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
           apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
                
         }
         
     }  
         
-        // Method to verify USER PIN
-        protected void VerifyUserPIN(APDU apdu) {
+        /* Method to verify User PIN 
+           *response APDU (in case of correct User PIN):
+	     * * 1 byte: RESPONSE_SUCCEEDED
+	   * response APDU (in case of incorrect User PIN):
+             * * 1 byte: RESPONSE_FAILED
+           * response APDU (in case of wrong input data):
+            * * SW: SW_BAD_PIN (0x6900) 
+        */ 
+        protected void VerifyUserPIN(APDU apdu) 
+        {
         byte[] buffer = apdu.getBuffer();
         short dataLen = apdu.setIncomingAndReceive();
-        // VERIFY USER PIN
         if (User_PIN.check(buffer, ISO7816.OFFSET_CDATA, (byte) dataLen) == false) {
             ISOException.throwIt(SW_BAD_PIN);
-            flag=0;
             buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 	    apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
         }
         else 
-        { flag=1;
+        { 
         buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 	apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
                
         }
         
-    }
+      }
+        
+      
+      
+    
+
 	/**
 	 * Method to send Public Key (exponent & modulus) to the user application.
 	 * <p>
