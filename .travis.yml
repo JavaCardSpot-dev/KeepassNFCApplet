@@ -16,7 +16,7 @@ script:
   - ./gradlew buildJavaCard --info
 
 after_success:
-- ./gradlew check jacocoTestReport coveralls
+- ./gradlew check jacocoTestReport applet:coveralls
 
 after_failure:
 - ./gradlew clean check --debug
