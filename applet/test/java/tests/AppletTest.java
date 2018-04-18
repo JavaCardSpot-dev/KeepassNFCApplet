@@ -314,4 +314,15 @@ public class AppletTest {
 		}
 		
 	}
+        public void SetUser_PIN() throws Exception
+	{
+		// test failure of setting of user PIN
+		try {
+			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_SET_UserPIN, new byte[]{0x34, 0x37,0x39,0x36});
+			client.sendAPDU(client.getCardMngr(), apdu);
+			Assert.fail("SetUserPIN should throw error if user PIN doesn't set.");
+		} catch (CardException ignored) {
+		}
+		
+	}
 }
