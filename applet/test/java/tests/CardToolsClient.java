@@ -158,10 +158,8 @@ public class CardToolsClient extends AbstractClient {
 
 		runCfg.setAppletToSimulate(appletClass)
 				.setTestCardType(cardType)
-				.setbReuploadApplet(true);
-
-		if (installData != null)
-			runCfg.setInstallData(installData);
+				.setbReuploadApplet(true)
+				.setInstallData(installData);
 
 		System.out.print("Connecting to card...");
 		try {
