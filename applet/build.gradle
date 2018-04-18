@@ -13,6 +13,7 @@ buildscript {
 }
 
 apply plugin: 'javacard'
+apply plugin: 'jacoco'
 sourceCompatibility = 1.7
 
 if (project.hasProperty("JAVA_HOME"))
@@ -22,6 +23,13 @@ if (project.hasProperty("JAVA_HOME"))
 final def rootPath = rootDir.absolutePath
 final def libs = rootPath + '/libs'
 final def libsSdk = rootPath + '/libs-sdks'
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true // coveralls plugin depends on xml format report
+        html.enabled = true
+    }
+}
 
 // Repositories for your project
 repositories {

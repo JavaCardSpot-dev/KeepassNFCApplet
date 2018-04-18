@@ -15,3 +15,5 @@ script:
   - ./gradlew check --info
   - ./gradlew buildJavaCard --info
 
+after_success:
+- ./gradlew jacocoTestReport coveralls
