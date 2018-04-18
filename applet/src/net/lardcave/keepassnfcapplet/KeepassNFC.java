@@ -19,6 +19,10 @@ public class KeepassNFC extends Applet {
 	final static byte INS_CARD_GET_VERSION         = (byte)0x74;   // instruction to get version
 	final static byte INS_CARD_GENERATE_CARD_KEY   = (byte)0x75;
 	final static byte INS_CARD_WRITE_TO_SCRATCH    = (byte)0x76;
+        final static byte INS_VERIFY_MasterPIN = (byte) 0x77;
+        final static byte INS_VERIFY_UserPIN = (byte) 0x78;
+        final static short SW_BAD_PIN = (short) 0x6900;
+
 
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
@@ -46,11 +50,13 @@ public class KeepassNFC extends Applet {
 	private static final byte Master_PIN_MAX_LENGTH = 127; // maximum length of Master PIN
         private static final byte User_PIN_MIN_LENGTH = 4;     // Minimum length of User PIN
 	private static final byte User_PIN_MAX_LENGTH = 127;   // Maximum Length of User PIN
-        private byte Master_PIN_length; 
+        private byte Master_PIN_length ; 
         private byte User_PIN_length;
-        private OwnerPIN Master_PIN;
-        private OwnerPIN User_PIN;
-        private static byte[] Master_PIN_DEFAULT = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36 };
+        private OwnerPIN Master_PIN =null;
+        private OwnerPIN User_PIN=null;
+        private static byte[] Master_PIN_DEFAULT = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36 }; //default Master_PIN
+        private static byte[] User_PIN_DEFAULT = { 0x31, 0x32, 0x33, 0x34 }; //default User_PIN
+        short flag=0;
 	//method to generate the three keys
 	protected KeepassNFC(byte[] bArray, short bOffset, byte bLength)
 	{
@@ -82,6 +88,9 @@ public class KeepassNFC extends Applet {
 		// Initialize Master_PIN with default password
 		Master_PIN= new OwnerPIN((byte) 3,Master_PIN_MAX_LENGTH );
 		Master_PIN.update(Master_PIN_DEFAULT, (short)0, (byte) Master_PIN_DEFAULT.length);
+		Master_PIN_length = (byte) Master_PIN_DEFAULT.length;
+                User_PIN= new OwnerPIN((byte) 3,User_PIN_MAX_LENGTH );
+		User_PIN.update(User_PIN_DEFAULT, (short)0, (byte) User_PIN_DEFAULT.length);
 		Master_PIN_length = (byte) Master_PIN_DEFAULT.length;
 		
         }
@@ -124,6 +133,13 @@ public class KeepassNFC extends Applet {
 
 		if (buffer[ISO7816.OFFSET_CLA] == CLA_CARD_KPNFC_CMD) {   // checking CLA field of header
 			switch (buffer[ISO7816.OFFSET_INS]) {
+                                case INS_VERIFY_MasterPIN:  //For verification of Master PIN
+                                    VerifyMasterPIN(apdu);
+                                    break;
+                                case INS_VERIFY_UserPIN:   // For Verification of User PIN
+                                    VerifyUserPIN(apdu);
+                                    break;
+
 				case INS_CARD_GET_CARD_PUBKEY:    // Getting the card public key
 					getCardPubKey(apdu);
 					break;
@@ -164,7 +180,46 @@ public class KeepassNFC extends Applet {
 	private static final short PUBKEY_RESPONSE_REMAIN_IDX = (short)(ISO7816.OFFSET_CDATA + 3);
 	private static final short PUBKEY_RESPONSE_EXPONENT_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_EXPONENT_OFFSET);
 	private static final short PUBKEY_RESPONSE_MODULUS_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_MODULUS_OFFSET);
-
+ 
+        // Method to verify Master PIN
+        protected void VerifyMasterPIN(APDU apdu) {
+        byte[] buffer = apdu.getBuffer();
+        short dataLen = apdu.setIncomingAndReceive();
+        // VERIFY Master PIN
+        if (Master_PIN.check(buffer, ISO7816.OFFSET_CDATA, (byte) dataLen) == false) {
+            ISOException.throwIt(SW_BAD_PIN);
+            flag=0;
+            buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+	    apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+        }
+        else 
+        { flag=1;
+          buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+          apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+               
+        }
+        
+    }  
+        
+        // Method to verify USER PIN
+        protected void VerifyUserPIN(APDU apdu) {
+        byte[] buffer = apdu.getBuffer();
+        short dataLen = apdu.setIncomingAndReceive();
+        // VERIFY USER PIN
+        if (User_PIN.check(buffer, ISO7816.OFFSET_CDATA, (byte) dataLen) == false) {
+            ISOException.throwIt(SW_BAD_PIN);
+            flag=0;
+            buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+	    apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+        }
+        else 
+        { flag=1;
+        buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+	apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+               
+        }
+        
+    }
 	/**
 	 * Method to send Public Key (exponent & modulus) to the user application.
 	 * <p>
@@ -188,6 +243,9 @@ public class KeepassNFC extends Applet {
 	 *             * 1 byte: type of request -- PUBKEY_GET_EXPONENT or PUBKEY_GET_MODULUS
 	 *             * 2 bytes: start byte (if requesting modulus-continue) or 00 00 (otherwise)
 	 */
+        
+        
+
 	protected void getCardPubKey(APDU apdu)
 	{
 		byte[] buffer = apdu.getBuffer();   // buffer to hold the header
