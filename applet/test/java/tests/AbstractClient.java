@@ -22,7 +22,8 @@ abstract public class AbstractClient {
 	public String testDataString;
 	public List<String> command = new ArrayList<>();
 
-	public byte[] TEST_PASSWORD_KEY = {15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+	public byte[] TEST_PASSWORD_KEY = {31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
+			15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
 	public byte[] TEST_INPUT = {(byte)0x70, (byte)0x65, (byte)0x72, (byte)0x73, (byte)0x69,
 			(byte)0x6d, (byte)0x6d, (byte)0x6f, (byte)0x6e, (byte)0x73, (byte)0x20, (byte)0x2d, (byte)0x20,
 			(byte)0x79, (byte)0x75, (byte)0x6d};
@@ -57,6 +58,8 @@ abstract public class AbstractClient {
 	public static final byte OFFSET_LC = 0x04;
 	public static final byte OFFSET_DATA = 0x05;
 	public static final byte HEADER_LENGTH = 0x05;
+
+	public static final int AES_LEN = 128;
 
 	AbstractClient()
 	{
@@ -242,12 +245,12 @@ abstract public class AbstractClient {
 
 	public boolean setNewPasswordKey() throws CardException
 	{
-		passwordKey = new byte[16];
+		passwordKey = new byte[AES_LEN / 8];
 
 		if (useDefaultKey) {
-			System.arraycopy(TEST_PASSWORD_KEY, 0, passwordKey, 0, passwordKey.length);
+			System.arraycopy(TEST_PASSWORD_KEY, 0, passwordKey, 0, AES_LEN / 8);
 		} else {
-			passwordKey = randomBytes(16);
+			passwordKey = randomBytes(AES_LEN / 8);
 		}
 		return setNewPasswordKey(passwordKey);
 	}
