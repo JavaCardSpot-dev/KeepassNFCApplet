@@ -305,16 +305,28 @@ public class KeepassNFC extends Applet {
 
 		// check length of new User PIN
 		if (dataLen < USER_PIN_MIN_LENGTH || dataLen > USER_PIN_MAX_LENGTH) {
-			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+                        apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
+                        ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 		}
+                else
+                {
+                   userPIN.update(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen);
+                   buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+                   apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1); 
+                }
                 
                 // Check to Mitigate Fault induction
                 if (USER_PIN_MIN_LENGTH >dataLen|| USER_PIN_MAX_LENGTH<dataLen) {
-			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+                        apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
+                        ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 		}
-		userPIN.update(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen);
-		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
+                else
+                {   userPIN.update(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen);
+                    buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+                    apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
+                }
 	}
 
 	/**
