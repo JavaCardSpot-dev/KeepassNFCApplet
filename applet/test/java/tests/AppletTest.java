@@ -121,11 +121,21 @@ public class AppletTest {
 	}
 
 	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Failing"})
-	public void uninitializedGetCardKey() throws Exception
+	public void uninitializedGetCardKeyExponent() throws Exception
 	{
 		if (client.getCardType() != PHYSICAL) { // in PHYSICAL card no guarantee on uninitialization of Card Key can be given
 			verifyUserPIN();
 			byte[] command = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{1, 0, 0});
+			assertGeneralCryptoError(command);
+		}
+	}
+
+	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Failing"})
+	public void uninitializedGetCardKeyModulus() throws Exception
+	{
+		if (client.getCardType() != PHYSICAL) { // in PHYSICAL card no guarantee on uninitialization of Card Key can be given
+			verifyUserPIN();
+			byte[] command = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{2, 0, 0});
 			assertGeneralCryptoError(command);
 		}
 	}
