@@ -737,6 +737,10 @@ public class KeepassNFC extends Applet {
 			card_cipher.init(private_key, Cipher.MODE_DECRYPT);
 			// performing the decryption
 			decryptedBytes = card_cipher.doFinal(input, offset, (short)(RSA_KEYLENGTH / 8), aes_key_temporary, (short)0);
+			// on cardTools simulator doFinal can (not always) raise org.bouncycastle.crypto.DataLengthException:
+			// - normally happens when scratch_area is not set to the actual key to be decyphered.
+			// - means that data in scratch_area represent a too big number to be evaluated
+			// - that's catchable with a RuntimeException.
 			if (decryptedBytes == (short)0)
 				throw new CryptoException(CryptoException.ILLEGAL_USE);
 			output.setKey(aes_key_temporary, (short)0);
@@ -749,6 +753,8 @@ public class KeepassNFC extends Applet {
 			output.clearKey();
 			decryptedBytes = 0;
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
+		} catch (RuntimeException e) {
+			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | (short)9));
 		} finally {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);

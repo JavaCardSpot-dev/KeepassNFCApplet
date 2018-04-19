@@ -286,6 +286,15 @@ public class AppletTest {
 		assertUnverifiedUserPIN(command);
 	}
 
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
+	public void uninitializedPasswordPrepareDecryption() throws Exception
+	{
+		verifyUserPIN();
+		client.generateCardKey();
+		byte[] command = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]);
+		assertGeneralCryptoError(command);
+	}
+
 	@Test(dependsOnGroups = {"PIN"}, groups = {"Failing"})
 	public void unverifiedDecryptBlock() throws Exception
 	{
