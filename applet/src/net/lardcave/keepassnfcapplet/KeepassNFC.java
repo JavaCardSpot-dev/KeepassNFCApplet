@@ -393,11 +393,11 @@ public class KeepassNFC extends Applet {
 
 				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
 				if (!key.isInitialized())
-					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.UNINITIALIZED_KEY));
+					throw new CryptoException(CryptoException.UNINITIALIZED_KEY);
 				ret_key_length = key.getExponent(buffer, PUBKEY_RESPONSE_EXPONENT_IDX);
 				// prevent Fault Induction on key.getExponent
 				if (ret_key_length == (short)0) // don't need second FI check, too near
-					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.ILLEGAL_VALUE));
+					throw new CryptoException(CryptoException.ILLEGAL_VALUE);
 
 				Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, ret_key_length);
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
@@ -408,11 +408,11 @@ public class KeepassNFC extends Applet {
 				// Always rewrite public modulus in scratch buffer, prevents reading of arbitrary scratch_area positions
 				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
 				if (!key.isInitialized())
-					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.UNINITIALIZED_KEY));
+					throw new CryptoException(CryptoException.UNINITIALIZED_KEY);
 				ret_key_length = key.getModulus(scratch_area, (short)0);
 				// prevent Fault Induction on key.getModulus
 				if (ret_key_length == (short)0) // don't need second FI check, too near
-					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.ILLEGAL_VALUE));
+					throw new CryptoException(CryptoException.ILLEGAL_VALUE);
 
 				// calculating the length of key
 				short amountToSend = (short)(ret_key_length - offset);
@@ -733,10 +733,10 @@ public class KeepassNFC extends Applet {
 			// performing the decryption
 			decryptedBytes = card_cipher.doFinal(input, offset, (short)(RSA_KEYLENGTH / 8), aes_key_temporary, (short)0);
 			if (decryptedBytes == (short)0)
-				ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.ILLEGAL_USE));
+				throw new CryptoException(CryptoException.ILLEGAL_USE);
 			output.setKey(aes_key_temporary, (short)0);
 			if (!output.isInitialized())
-				ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.INVALID_INIT));
+				throw new CryptoException(CryptoException.INVALID_INIT);
 		} catch (CryptoException e) {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
