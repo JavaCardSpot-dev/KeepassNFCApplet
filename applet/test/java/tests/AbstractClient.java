@@ -33,6 +33,8 @@ abstract public class AbstractClient {
 	private SecureRandom random;
 
 	public final static byte CLA_CARD_KPNFC_CMD = (byte)0xB0;
+	public final static byte CLA_CARD_KPNFC_PIN = (byte)0xC0;
+	public final static byte CLA_CARD_KPNFC_ALL = (byte)0xD0;
 
 	public final static byte INS_CARD_GET_CARD_PUBKEY = (byte)0x70;
 	public final static byte INS_CARD_SET_PASSWORD_KEY = (byte)0x71;
@@ -41,10 +43,10 @@ abstract public class AbstractClient {
 	public final static byte INS_CARD_GET_VERSION = (byte)0x74;
 	public final static byte INS_CARD_GENERATE_CARD_KEY = (byte)0x75;
 	public final static byte INS_CARD_WRITE_TO_SCRATCH = (byte)0x76;
-	final static byte INS_VERIFY_MASTER_PIN = (byte)0x77;
-	final static byte INS_VERIFY_USER_PIN = (byte)0x78;
-	final static byte INS_SET_USER_PIN = (byte)0x79;
-	final static byte INS_SET_MASTER_PIN = (byte)0x80;
+	public final static byte INS_VERIFY_MASTER_PIN = (byte)0x80;
+	public final static byte INS_SET_MASTER_PIN = (byte)0x81;
+	public final static byte INS_VERIFY_USER_PIN = (byte)0x82;
+	public final static byte INS_SET_USER_PIN = (byte)0x83;
 	public final static byte RESPONSE_SUCCEEDED = (byte)0x1;
 	public final static byte RESPONSE_FAILED = (byte)0x2;
 
@@ -372,14 +374,23 @@ abstract public class AbstractClient {
 		return null;
 	}
 
-	public byte[] getVersion() throws CardException
+	public byte[] prepareVersionAPDU()
 	{
-		byte[] command = constructApdu(INS_CARD_GET_VERSION);
+		return constructApdu(CLA_CARD_KPNFC_ALL, INS_CARD_GET_VERSION);
+	}
+
+	public byte getVersion() throws CardException
+	{
+		return getVersion(prepareVersionAPDU());
+	}
+
+	public byte getVersion(byte[] command) throws CardException
+	{
 		byte[] response = sendAPDU(command).getData();
 
 		if (response != null) {
 			System.out.println("Applet version " + response[1]);
-			return response;
+			return response[1];
 		}
 		throw new CardException("Unknown error");
 	}
@@ -417,7 +428,7 @@ abstract public class AbstractClient {
 
 	public boolean verifyMasterPIN(byte[] masterPIN) throws CardException
 	{
-		byte[] command = constructApdu(INS_VERIFY_MASTER_PIN, masterPIN);
+		byte[] command = constructApdu(CLA_CARD_KPNFC_PIN, INS_VERIFY_MASTER_PIN, masterPIN);
 		byte[] responseData = sendAPDU(command).getData();
 		if (responseData != null && responseData.length == 1 && responseData[0] == RESPONSE_SUCCEEDED) {
 			return true;
@@ -428,7 +439,7 @@ abstract public class AbstractClient {
 
 	public boolean verifyUserPIN(byte[] userPIN) throws CardException
 	{
-		byte[] command = constructApdu(INS_VERIFY_USER_PIN, userPIN);
+		byte[] command = constructApdu(CLA_CARD_KPNFC_PIN, INS_VERIFY_USER_PIN, userPIN);
 		byte[] responseData = sendAPDU(command).getData();
 		if (responseData != null && responseData.length == 1 && responseData[0] == RESPONSE_SUCCEEDED) {
 			return true;
@@ -448,7 +459,7 @@ abstract public class AbstractClient {
 	// set user PIN directly without prior master PIN verification
 	public boolean setUserPIN(byte[] userPIN) throws CardException
 	{
-		byte[] command = constructApdu(INS_SET_USER_PIN, userPIN);
+		byte[] command = constructApdu(CLA_CARD_KPNFC_PIN, INS_SET_USER_PIN, userPIN);
 		byte[] responseData = sendAPDU(command).getData();
 		if (responseData != null && responseData.length == 1 && responseData[0] == RESPONSE_SUCCEEDED) {
 			return true;
@@ -468,7 +479,7 @@ abstract public class AbstractClient {
 	// set master PIN directly without prior master PIN verification
 	public boolean setMasterPIN(byte[] newMasterPin) throws CardException
 	{
-		byte[] command = constructApdu(INS_SET_MASTER_PIN, newMasterPin);
+		byte[] command = constructApdu(CLA_CARD_KPNFC_PIN, INS_SET_MASTER_PIN, newMasterPin);
 		byte[] responseData = sendAPDU(command).getData();
 		if (responseData != null && responseData.length == 1 && responseData[0] == RESPONSE_SUCCEEDED) {
 			return true;
@@ -477,16 +488,10 @@ abstract public class AbstractClient {
 		return false;
 	}
 
-	public static byte[] constructApdu(byte command)
-	{
-		byte[] nothing = {};
-		return constructApdu(command, nothing);
-	}
-
-	public static byte[] constructApdu(byte command, byte[] data)
+	public static byte[] constructApdu(byte cla, byte command, byte[] data)
 	{
 		byte[] apdu = new byte[HEADER_LENGTH + (data == null ? 0 : data.length)];
-		apdu[OFFSET_CLA] = CLA_CARD_KPNFC_CMD;
+		apdu[OFFSET_CLA] = cla;
 		apdu[OFFSET_INS] = command;
 		apdu[OFFSET_P1] = (byte)0;
 		apdu[OFFSET_P2] = (byte)0;
@@ -497,6 +502,23 @@ abstract public class AbstractClient {
 			apdu[OFFSET_LC] = 0;
 		}
 		return apdu;
+	}
+
+	public static byte[] constructApdu(byte command, byte[] data)
+	{
+		return constructApdu(CLA_CARD_KPNFC_CMD, command, data);
+	}
+
+	public static byte[] constructApdu(byte cla, byte command)
+	{
+		byte[] nothing = {};
+		return constructApdu(cla, command, nothing);
+	}
+
+	public static byte[] constructApdu(byte command)
+	{
+		byte[] nothing = {};
+		return constructApdu(command, nothing);
 	}
 
 	abstract public CardChannel getCardChannel() throws CardException;

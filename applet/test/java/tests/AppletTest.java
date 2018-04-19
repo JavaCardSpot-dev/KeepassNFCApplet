@@ -71,9 +71,17 @@ public class AppletTest {
 	@Test(dependsOnGroups = {"Installing"})
 	public void getVersion() throws Exception
 	{
-		byte[] version = client.getVersion();
-		Assert.assertEquals((byte)1, version[0]);
-		Assert.assertEquals((byte)2, version[1]);
+		byte version = client.getVersion();
+		Assert.assertEquals((byte)2, version);
+	}
+
+	@Test(dependsOnGroups = {"Installing"})
+	public void getVersion2() throws Exception
+	{
+		byte[] cmd = client.prepareVersionAPDU();
+		cmd[client.OFFSET_CLA] = client.CLA_CARD_KPNFC_CMD;
+		byte version = client.getVersion(cmd);
+		Assert.assertEquals((byte)2, version);
 	}
 
 	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Configuring"})
@@ -249,8 +257,7 @@ public class AppletTest {
 	public void unsupportedCLA() throws Exception
 	{
 		try {
-			byte[] apdu = client.constructApdu((byte)0x00);
-			apdu[0] = 0x00;
+			byte[] apdu = client.constructApdu((byte)0x00, (byte)0x00);
 			client.sendAPDU(apdu);
 			Assert.fail("Unsupported CLA should throw errors.");
 		} catch (CardException ignored) {
@@ -258,11 +265,32 @@ public class AppletTest {
 	}
 
 	@Test(groups = {"Failing"})
-	public void unsupportedINS() throws Exception
+	public void unsupportedINSall() throws Exception
 	{
+		byte[] apdu = client.constructApdu(client.CLA_CARD_KPNFC_ALL, (byte)0x00);
 		try {
-			client.sendAPDU(client.constructApdu((byte)0x00));
+			client.sendAPDU(apdu);
 			Assert.fail("Unsupported INS should throw errors.");
+		} catch (CardException ignored) {
+		}
+	}
+
+	@Test(groups = {"Failing"})
+	public void unsupportedINScmd() throws Exception
+	{
+		byte[] apdu = client.constructApdu(client.CLA_CARD_KPNFC_CMD, (byte)0x00);
+		try {
+			client.sendAPDU(apdu);
+		} catch (CardException ignored) {
+		}
+	}
+
+	@Test(groups = {"Failing"})
+	public void unsupportedINSpin() throws Exception
+	{
+		byte[] apdu = client.constructApdu(client.CLA_CARD_KPNFC_PIN, (byte)0x00);
+		try {
+			client.sendAPDU(apdu);
 		} catch (CardException ignored) {
 		}
 	}

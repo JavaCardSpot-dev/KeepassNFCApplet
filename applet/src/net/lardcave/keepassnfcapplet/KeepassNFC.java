@@ -9,7 +9,9 @@ import javacardx.crypto.Cipher;
 // TODO: encrypt-then-MAC: http://crypto.stackexchange.com/questions/202/should-we-mac-then-encrypt-or-encrypt-then-mac
 
 public class KeepassNFC extends Applet {
-	final static byte CLA_CARD_KPNFC_CMD           = (byte)0xB0;   // class identification of the card being used for applet
+	final static byte CLA_CARD_KPNFC_CMD           = (byte)0xB0;   // class identification of the normal-operation instructions (pin-accessible)
+	final static byte CLA_CARD_KPNFC_PIN           = (byte)0xC0;   // class identification of the pin-related instructions
+	final static byte CLA_CARD_KPNFC_ALL           = (byte)0xD0;   // class identification of the instructions always available
 
 	final static byte INS_CARD_GET_CARD_PUBKEY     = (byte)0x70;   // Instruction to get card public key
 	final static byte INS_CARD_SET_PASSWORD_KEY    = (byte)0x71;   // Instruction to set password key
@@ -18,10 +20,12 @@ public class KeepassNFC extends Applet {
 	final static byte INS_CARD_GET_VERSION         = (byte)0x74;   // instruction to get version
 	final static byte INS_CARD_GENERATE_CARD_KEY   = (byte)0x75;
 	final static byte INS_CARD_WRITE_TO_SCRATCH    = (byte)0x76;
-	final static byte INS_VERIFY_MASTER_PIN        = (byte)0x77;
-	final static byte INS_VERIFY_USER_PIN          = (byte)0x78;
-	final static byte INS_SET_USER_PIN             = (byte)0x79;
-	final static byte INS_SET_MASTER_PIN           = (byte)0x80;
+
+	final static byte INS_VERIFY_MASTER_PIN        = (byte)0x80;
+	final static byte INS_SET_MASTER_PIN           = (byte)0x81;
+	final static byte INS_VERIFY_USER_PIN          = (byte)0x82;
+	final static byte INS_SET_USER_PIN             = (byte)0x83;
+
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
@@ -133,47 +137,66 @@ public class KeepassNFC extends Applet {
 		if (selectingApplet())
 			return;
 
-		if (buffer[ISO7816.OFFSET_CLA] == CLA_CARD_KPNFC_CMD) {   // checking CLA field of header
-			switch (buffer[ISO7816.OFFSET_INS]) {
-				case INS_VERIFY_MASTER_PIN:  //For verification of Master PIN
-					verifyMasterPIN(apdu);
-					break;
-				case INS_VERIFY_USER_PIN:    // For Verification of User PIN
-					verifyUserPIN(apdu);
-					break;
-				case INS_SET_MASTER_PIN:        // For Setting of New User PIN
-					setMasterPIN(apdu);
-					break;
-				case INS_SET_USER_PIN:        // For Setting of New User PIN
-					setUserPIN(apdu);
-					break;
-				case INS_CARD_GET_CARD_PUBKEY:    // Getting the card public key
-					getCardPubKey(apdu);
-					break;
-				case INS_CARD_SET_PASSWORD_KEY:   // setting the password key
-					setPasswordKey(apdu);
-					break;
-				case INS_CARD_PREPARE_DECRYPTION:    //to exchange safely the AES keys for decryption via PKI system
-					prepareDecryption(apdu);
-					break;
-				case INS_CARD_DECRYPT_BLOCK:   // decryption of database
-					decryptBlock(apdu);
-					break;
-				case INS_CARD_GET_VERSION:   // getting the version
-					getVersion(apdu);
-					break;
-				case INS_CARD_GENERATE_CARD_KEY:  // generating the card keys
-					generateCardKey(apdu);
-					break;
-				case INS_CARD_WRITE_TO_SCRATCH:    //APDU instruction to write in the scratch area
-					writeToScratch(apdu);
-					break;
-				default:
-					ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
-					break;
-			}
-		} else if (buffer[ISO7816.OFFSET_CLA] != CLA_CARD_KPNFC_CMD) {
-			ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
+		switch (buffer[ISO7816.OFFSET_CLA]) {
+			case CLA_CARD_KPNFC_ALL:
+				switch (buffer[ISO7816.OFFSET_INS]) {
+					case INS_CARD_GET_VERSION:   // get the version
+						getVersion(apdu);
+						break;
+					default:
+						ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
+						break;
+				}
+				break;
+			case CLA_CARD_KPNFC_PIN:
+				switch (buffer[ISO7816.OFFSET_INS]) {
+					case INS_VERIFY_MASTER_PIN:  // verification of Master PIN
+						verifyMasterPIN(apdu);
+						break;
+					case INS_SET_MASTER_PIN:     // setting of new Master PIN
+						setMasterPIN(apdu);
+						break;
+					case INS_VERIFY_USER_PIN:    // verification of User PIN
+						verifyUserPIN(apdu);
+						break;
+					case INS_SET_USER_PIN:       // setting of new User PIN
+						setUserPIN(apdu);
+						break;
+					default:
+						ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
+						break;
+				}
+				break;
+			case CLA_CARD_KPNFC_CMD:
+				switch (buffer[ISO7816.OFFSET_INS]) {
+					case INS_CARD_GET_CARD_PUBKEY:    // getting the card public key
+						getCardPubKey(apdu);
+						break;
+					case INS_CARD_SET_PASSWORD_KEY:   // setting the password key
+						setPasswordKey(apdu);
+						break;
+					case INS_CARD_PREPARE_DECRYPTION: // initialize ciphers with given IVs
+						prepareDecryption(apdu);
+						break;
+					case INS_CARD_DECRYPT_BLOCK:      // decryption of database block
+						decryptBlock(apdu);
+						break;
+					case INS_CARD_GET_VERSION:        // get the version, here only for compatibility
+						getVersion(apdu);
+						break;
+					case INS_CARD_GENERATE_CARD_KEY:  // generate the card keys
+						generateCardKey(apdu);
+						break;
+					case INS_CARD_WRITE_TO_SCRATCH:   // write in the scratch area
+						writeToScratch(apdu);
+						break;
+					default:
+						ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
+						break;
+				}
+				break;
+			default:
+				ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
 		}
 	}
 
