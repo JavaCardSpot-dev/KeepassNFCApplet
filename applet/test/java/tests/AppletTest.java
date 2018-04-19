@@ -76,9 +76,10 @@ public class AppletTest {
 		Assert.assertEquals((byte)2, version[1]);
 	}
 
-	@Test(dependsOnGroups = {"Installing"}, groups = {"Configuring"})
+	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Configuring"})
 	public void setupNewCardKey() throws Exception
 	{
+		verifyUserPIN();
 		short keyLength = client.generateCardKey();
 		Assert.assertEquals((2048 + 64)/8, keyLength);
 		RSAPublicKey key = client.getCardPubKey(client.getCardChannel());
@@ -88,34 +89,38 @@ public class AppletTest {
 		Assert.assertTrue(key.getPublicExponent().isProbablePrime(10));
 	}
 
-	@Test(dependsOnGroups = {"Configuring"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"})
 	public void setPasswordKey() throws Exception
 	{
+		verifyUserPIN();
 		client.generateCardKey();
 		boolean passwordSet = client.setNewPasswordKey("ASD");
 		Assert.assertEquals(true, passwordSet);
 	}
 
-	@Test(dependsOnGroups = {"Configuring"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"})
 	public void setDefaultPasswordKey() throws Exception
 	{
+		verifyUserPIN();
 		client.useDefaultKey = true;
 		client.generateCardKey();
 		boolean passwordSet = client.setNewPasswordKey();
 		Assert.assertEquals(true, passwordSet);
 	}
 
-	@Test(dependsOnGroups = {"Configuring"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"})
 	public void setRandomPasswordKey() throws Exception
 	{
+		verifyUserPIN();
 		client.generateCardKey();
 		boolean passwordSet = client.setNewPasswordKey();
 		Assert.assertEquals(true, passwordSet);
 	}
 
-	@Test(dependsOnGroups = {"Configuring"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"})
 	public void clientEncrypt() throws Exception
 	{
+		verifyUserPIN();
 		client.generateCardKey();
 		client.setNewPasswordKey();
 		client.setPasswordKeyIv();
@@ -160,21 +165,25 @@ public class AppletTest {
 		System.out.println("After: " + Util.toHex(decryptedData));
 		Assert.assertTrue(Arrays.equals(data, decryptedData));
 	}
-	@Test(dependsOnGroups = {"Configuring"})
+
+	@Test(dependsOnGroups = {"Configuring", "PIN"})
 	public void cardDecrypt16() throws Exception
 	{
+		verifyUserPIN();
 		cardDecrypt("TestDataCorrectL".getBytes());
 	}
 
-	@Test(dependsOnGroups = {"Configuring"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"})
 	public void cardDecrypt32() throws Exception
 	{
+		verifyUserPIN();
 		cardDecrypt("TestDataCorrectLengthThats32Byte".getBytes());
 	}
 
-	@Test(dependsOnGroups = {"Configuring"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"})
 	public void cardDecrypt64() throws Exception
 	{
+		verifyUserPIN();
 		cardDecrypt("TestDataCorrectLengthThats32ByteTestDataCorrectLengthThats32Byte".getBytes());
 	}
 
@@ -200,9 +209,10 @@ public class AppletTest {
 		}
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void uninitializedCardKeySettingPasswordKey() throws Exception
 	{
+		verifyUserPIN();
 		try {
 			client.sendAPDU(client.constructApdu((byte)0x71));
 			Assert.fail("setPasswordKey should throw error if card hasn't any key.");
@@ -210,9 +220,10 @@ public class AppletTest {
 		}
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void uncorrectLengthPasswordKey() throws Exception
 	{
+		verifyUserPIN();
 		try {
 			byte[] apdu = client.constructApdu((byte)0x71, new byte[]{0x01, 0x02});
 			client.sendAPDU(apdu);
@@ -221,9 +232,10 @@ public class AppletTest {
 		}
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void uninitializedCardKeySettingTransactionKey() throws Exception
 	{
+		verifyUserPIN();
 		try {
 			client.sendAPDU(AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]));
 			Assert.fail("prepareDecryption should throw error if card hasn't any key.");
@@ -231,9 +243,10 @@ public class AppletTest {
 		}
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void incorrectLengthTransactionKey() throws Exception
 	{
+		verifyUserPIN();
 		try {
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION);
 			client.sendAPDU(apdu);
@@ -254,9 +267,10 @@ public class AppletTest {
 		}
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void incorrectLengthGenCardKey() throws Exception
 	{
+		verifyUserPIN();
 		try {
 			byte[] apdu = client.constructApdu(AbstractClient.INS_CARD_GENERATE_CARD_KEY, new byte[]{0x01, 0x02});
 			client.sendAPDU(apdu);
@@ -265,9 +279,10 @@ public class AppletTest {
 		}
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void incorrectLengthWriteToScratch() throws Exception
 	{
+		verifyUserPIN();
 		try {
 			// 0x104 = 260 is current length of scratch area. Testing with 0x102 length and 3 bytes goes after the end.
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_WRITE_TO_SCRATCH, new byte[]{0x01, 0x02, 0x03, 0x04, 0x05});
@@ -277,9 +292,10 @@ public class AppletTest {
 		}
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void incorrectLengthGetCardPubKey() throws Exception
 	{
+		verifyUserPIN();
 		// expects 3 bytes, test with less and more
 		try {
 			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{0x01, 0x02});

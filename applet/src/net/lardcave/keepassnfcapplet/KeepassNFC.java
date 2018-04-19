@@ -229,7 +229,7 @@ public class KeepassNFC extends Applet {
 	 * response APDU (in case of successful setting of User PIN):
 	 * * 1 byte: RESPONSE_SUCCEEDED
 	 * response APDU (in case of Master PIN not validated):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
 	 * response APDU (in case of new User PIN with wrong length):
 	 * * SW: SW_WRONG_LENGTH (0x6700)
 	 *
@@ -275,6 +275,8 @@ public class KeepassNFC extends Applet {
 	 * * SW: SW_WRONG_LENGTH (0x6700) or SW_WRONG_DATA(0x6A80)
 	 * response APDU (in case of crypto errors):
 	 * * SW: SW_CRYPTO_EXCEPTION (0xF100)
+	 * response APDU (in case of User PIN not verified):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
 	 * response APDU (in case of unrecognized request type):
 	 * * 1 byte: RESPONSE_FAILED
 	 *
@@ -282,11 +284,17 @@ public class KeepassNFC extends Applet {
 	 *             * 1 byte: type of request -- PUBKEY_GET_EXPONENT or PUBKEY_GET_MODULUS
 	 *             * 2 bytes: start byte (if requesting modulus-continue) or 00 00 (otherwise)
 	 */
-        
-        
-
 	protected void getCardPubKey(APDU apdu)
 	{
+		// Check if User PIN is validated
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+		// Double check for Fault Induction prevention
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+
 		byte[] buffer = apdu.getBuffer();   // buffer to hold the header
 		short length = apdu.setIncomingAndReceive();
 		if (length != (short)3)
@@ -369,11 +377,22 @@ public class KeepassNFC extends Applet {
 	 * * SW: SW_WRONG_LENGTH (0x6700)
 	 * response APDU (in case of decrypt error):
 	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 * response APDU (in case of User PIN not verified):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
 	 *
 	 * @param apdu Request APDU, empty.
 	 */
 	protected void setPasswordKey(APDU apdu)
 	{
+		// Check if User PIN is validated
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+		// Double check for Fault Induction prevention
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 		// check that length of incoming data is 0, with fault induction prevention
@@ -406,6 +425,8 @@ public class KeepassNFC extends Applet {
 	 * * SW: SW_WRONG_LENGTH (0x6700)
 	 * response APDU (in case of crypto error):
 	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 * response APDU (in case of User PIN not verified):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
 	 *
 	 * @param apdu Request APDU formatted this way:
 	 *             * 16 bytes: IV for transaction key (plaintext)
@@ -413,6 +434,15 @@ public class KeepassNFC extends Applet {
 	 */
 	protected void prepareDecryption(APDU apdu)
 	{
+		// Check if User PIN is validated
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+		// Double check for Fault Induction prevention
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 		// check that length of incoming data is 32, with fault induction prevention
@@ -438,18 +468,29 @@ public class KeepassNFC extends Applet {
 
 	/**
 	 * Decrypt a block of the database.
-	 *
+	 * <p>
 	 * response APDU (in case of correct decryption):
 	 * * 1 byte: RESPONSE_SUCCEEDED
 	 * * n bytes: decrypted block, encrypted with Transaction Key
 	 * response APDU (in case of crypto error):
 	 * * 1 byte: RESPONSE_FAILED
+	 * response APDU (in case of User PIN not verified):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
 	 *
 	 * @param apdu Request APDU containing encrypted data, already padded.
 	 *             If P1 contains 0x80, the block is considered to be the last.
 	 */
 	protected void decryptBlock(APDU apdu)
 	{
+		// Check if User PIN is validated
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+		// Double check for Fault Induction prevention
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
@@ -528,11 +569,22 @@ public class KeepassNFC extends Applet {
 	 * * SW: SW_WRONG_LENGTH (0x6700)
 	 * response APDU (in case of crypto error):
 	 * * SW: 0xF100 | e.getReason() (INVALID_INIT in case of keys not initialized after genKeyPair())
+	 * response APDU (in case of User PIN not verified):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
 	 *
 	 * @param apdu Request APDU, empty.
 	 */
 	protected void generateCardKey(APDU apdu)
 	{
+		// Check if User PIN is validated
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+		// Double check for Fault Induction prevention
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
@@ -569,6 +621,8 @@ public class KeepassNFC extends Applet {
 	 * * 2 bytes: amount of free space after saved data
 	 * response APDU (in case of incorrect length of provided input):
 	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 * response APDU (in case of User PIN not verified):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
 	 *
 	 * @param apdu Request APDU formatted this way:
 	 *             * 2 bytes: offset from which to write in scratch
@@ -576,6 +630,15 @@ public class KeepassNFC extends Applet {
 	 */
 	protected void writeToScratch(APDU apdu)
 	{
+		// Check if User PIN is validated
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+		// Double check for Fault Induction prevention
+		if (!userPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
