@@ -524,8 +524,22 @@ public class AppletTest {
 				client.setUserPIN(newPIN, new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
 		Assert.assertTrue("If new User PIN is set, it should be correctly verified.",
 				client.verifyUserPIN(newPIN));
+		Assert.assertTrue("SetUserPIN should work after Master PIN verification.",
+				client.setUserPIN(new byte[]{0x31, 0x32, 0x33, 0x34}, new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
 	}
 
+	@Test(groups = {"PIN", "Failing"}, dependsOnMethods = {"verifyMasterPIN"})
+	public void setShortUserPIN() throws Exception
+	{
+		// test setting of a too short Master PIN
+		String errMsg = "SetMasterPIN should throw error if new Master PIN isn't long enough.";
+		byte[] newPIN = new byte[]{0x34, 0x37, 0x39};
+		try {
+			Assert.assertFalse(errMsg, client.setUserPIN(newPIN, new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6700"));
+		}
+	}
 	@Test(groups = {"PIN"}, dependsOnMethods = {"verifyMasterPIN"})
 	public void setMasterPIN() throws Exception
 	{
@@ -535,5 +549,7 @@ public class AppletTest {
 				client.setMasterPIN(newPIN, new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
 		Assert.assertTrue("If new Master PIN is set, it should be correctly verified.",
 				client.verifyMasterPIN(newPIN));
+		Assert.assertTrue("SetMasterPIN should work after Master PIN verification.",
+				client.setMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}, newPIN));
 	}
 }
