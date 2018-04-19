@@ -14,6 +14,7 @@ public class KeepassNFC extends Applet {
 	final static byte CLA_CARD_KPNFC_ALL           = (byte)0x90;   // class identification of the instructions always available
 
 	final static byte INS_CARD_GET_VERSION         = (byte)0x74;   // instruction to get version
+	final static byte INS_GET_REPO                 = (byte)0x77;   // instruction to get Repository info
 	final static byte INS_CARD_GET_LOCK_REASON     = (byte)0x72;   // instruction to lock reason/status
 
 	final static byte INS_CARD_GET_CARD_PUBKEY     = (byte)0x70;   // Instruction to get card public key
@@ -31,15 +32,15 @@ public class KeepassNFC extends Applet {
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
-
 	final static byte VERSION                      = (byte)0x2;   // version for Applet
-
+	final static byte REPO_INFO                    = (byte)0x2;   // Repository Info
+	
 	final static short SW_UNCHECKED_MASTER_PIN     = (short)0x9700;  // SW for unchecked Master PIN
 	final static short SW_UNCHECKED_USER_PIN       = (short)0x9800;  // SW for unchecked User PIN
 	final static short SW_BAD_PIN                  = (short)0x9900;  // SW for bad PIN
 	final static short SW_CRYPTO_EXCEPTION         = (short)0xF100;  // SW for Crypto Exception
 
-	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;    // key pair using RSA algorithm
+	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;    // genrtaion of key pair using RSA algorithm
 	final static short RSA_KEYLENGTH               = KeyBuilder.LENGTH_RSA_2048;   // RSA key length 2048
 
 	// Initialising the variables to null
@@ -77,7 +78,7 @@ public class KeepassNFC extends Applet {
 		password_cipher = Cipher.getInstance(Cipher.ALG_AES_BLOCK_128_CBC_NOPAD, false);
 		transaction_cipher = Cipher.getInstance(Cipher.ALG_AES_BLOCK_128_CBC_NOPAD, false);
 
-		scratch_area = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
+		scratch_area = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);	//using volatile memory for user write  
 		aes_key_temporary = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
 
 		// Initialize masterPIN with default password
@@ -101,9 +102,6 @@ public class KeepassNFC extends Applet {
 	private void cleanTransientSensitiveData()
 	{
 		transaction_key.clearKey();
-		// card_cipher
-		// password_cipher
-		// transaction_cipher
 		Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		userPIN.reset();
@@ -147,6 +145,9 @@ public class KeepassNFC extends Applet {
 						break;
 					case INS_CARD_GET_VERSION:     // get the version
 						getVersion(apdu);
+						break;
+					case INS_GET_REPO:     // get the Repository info
+						getRepo(apdu);
 						break;
 					default:
 						ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
@@ -198,6 +199,9 @@ public class KeepassNFC extends Applet {
 					case INS_CARD_GET_VERSION:        // get the version, here only for compatibility
 						getVersion(apdu);
 						break;
+					case INS_GET_REPO:     		// get the Repository for compatibility
+						getRepo(apdu);
+						break;
 					case INS_CARD_GENERATE_CARD_KEY:  // generate the card keys
 						generateCardKey(apdu);
 						break;
@@ -213,7 +217,7 @@ public class KeepassNFC extends Applet {
 				ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
 		}
 	}
-
+	
 	private static final short PUBKEY_MAX_SEND_LENGTH = 120;
 	private static final byte PUBKEY_GET_EXPONENT = 1;
 	private static final byte PUBKEY_GET_MODULUS = 2;
@@ -244,12 +248,15 @@ public class KeepassNFC extends Applet {
 		} else {
 			if (masterPIN.getTriesRemaining() == (short)0) {
 				cleanAllSensitiveData();
+			} else {
+				cleanTransientSensitiveData();
 			}
-			// Double check to Mitigate Fault Induction
-			if (masterPIN.getTriesRemaining() == (short)0) {
+                        // Check to Mitigate Fault Induction
+                        if (masterPIN.getTriesRemaining() == (short)0) {
 				cleanAllSensitiveData();
+			} else {
+				cleanTransientSensitiveData();
 			}
-			cleanTransientSensitiveData();
 			ISOException.throwIt((short)(SW_BAD_PIN | masterPIN.getTriesRemaining()));
 		}
 
@@ -306,11 +313,11 @@ public class KeepassNFC extends Applet {
 		if (dataLen < USER_PIN_MIN_LENGTH || dataLen > USER_PIN_MAX_LENGTH) {
 			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 		}
-		// Double check for Fault Induction prevention
-		if (!(USER_PIN_MIN_LENGTH <= dataLen && USER_PIN_MAX_LENGTH >= dataLen)) {
+                
+                // Check to Mitigate Fault induction
+                if (USER_PIN_MIN_LENGTH >dataLen|| USER_PIN_MAX_LENGTH<dataLen) {
 			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 		}
-
 		userPIN.update(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen);
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
@@ -340,13 +347,13 @@ public class KeepassNFC extends Applet {
 
 		byte[] buffer = apdu.getBuffer();
 		short dataLen = apdu.setIncomingAndReceive();
-
+ 
 		// check length of new Master PIN
 		if (dataLen < MASTER_PIN_MIN_LENGTH || dataLen > MASTER_PIN_MAX_LENGTH) {
 			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 		}
-		// Double check for Fault Induction prevention
-		if (!(MASTER_PIN_MIN_LENGTH <= dataLen && MASTER_PIN_MAX_LENGTH >= dataLen)) {
+                //check to mitigate Fault Induction
+                if (MASTER_PIN_MIN_LENGTH >dataLen || MASTER_PIN_MAX_LENGTH <dataLen) {
 			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 		}
 
@@ -363,7 +370,7 @@ public class KeepassNFC extends Applet {
 	 * * 2 bytes: length of exponent
 	 * * n bytes: exponent (up to 4 bytes)
 	 * response APDU (for modulus request):
-	 * * 1 byte: REPONSE_SUCCEEDED
+	 * * 1 byte: RESPONSE_SUCCEEDED
 	 * * 2 bytes: number of bytes sent this time
 	 * * 2 bytes: bytes remaining to send
 	 * * n bytes: modulus (up to MAX_PUBKEY_SEND_LENGTH bytes)
@@ -404,11 +411,11 @@ public class KeepassNFC extends Applet {
 
 				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
 				if (!key.isInitialized())
-					throw new CryptoException(CryptoException.UNINITIALIZED_KEY);
+					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.UNINITIALIZED_KEY));
 				ret_key_length = key.getExponent(buffer, PUBKEY_RESPONSE_EXPONENT_IDX);
 				// prevent Fault Induction on key.getExponent
 				if (ret_key_length == (short)0) // don't need second FI check, too near
-					throw new CryptoException(CryptoException.ILLEGAL_VALUE);
+					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.ILLEGAL_VALUE));
 
 				Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, ret_key_length);
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
@@ -419,11 +426,11 @@ public class KeepassNFC extends Applet {
 				// Always rewrite public modulus in scratch buffer, prevents reading of arbitrary scratch_area positions
 				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
 				if (!key.isInitialized())
-					throw new CryptoException(CryptoException.UNINITIALIZED_KEY);
+					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.UNINITIALIZED_KEY));
 				ret_key_length = key.getModulus(scratch_area, (short)0);
 				// prevent Fault Induction on key.getModulus
 				if (ret_key_length == (short)0) // don't need second FI check, too near
-					throw new CryptoException(CryptoException.ILLEGAL_VALUE);
+					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.ILLEGAL_VALUE));
 
 				// calculating the length of key
 				short amountToSend = (short)(ret_key_length - offset);
@@ -481,6 +488,8 @@ public class KeepassNFC extends Applet {
 				apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 				ISOException.throwIt(ISO7816.SW_NO_ERROR);
 			}
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
 
@@ -528,6 +537,8 @@ public class KeepassNFC extends Applet {
 				apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 				ISOException.throwIt(ISO7816.SW_NO_ERROR);
 			}
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
 
@@ -589,7 +600,8 @@ public class KeepassNFC extends Applet {
 		} finally {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
-			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
+		//Duplicate statement
+		     //Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		}
 
 		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)(encrypted + 1));
@@ -608,10 +620,28 @@ public class KeepassNFC extends Applet {
 	{
 		byte[] buffer = apdu.getBuffer();
 		apdu.setIncomingAndReceive();
-
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 		buffer[RESPONSE_STATUS_OFFSET + 1] = VERSION;
 		// sending the version of Applet
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)2);
+	}
+	
+	/**
+	 * Method to get the Repository info.
+	 * <p>
+	 * response APDU (in case of correct generation):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * * 1 byte: REPO_INFO
+	 *
+	 * @param apdu Request APDU, empty (no check).
+	 */
+	protected void getRepo(APDU apdu)
+	{
+		byte[] buffer = apdu.getBuffer();
+		apdu.setIncomingAndReceive();
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+		buffer[RESPONSE_STATUS_OFFSET + 1] = REPO_INFO;
+		// sending the Repo info
 		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)2);
 	}
 
@@ -629,10 +659,9 @@ public class KeepassNFC extends Applet {
 	{
 		byte[] buffer = apdu.getBuffer();
 		apdu.setIncomingAndReceive();
-
 		buffer[RESPONSE_STATUS_OFFSET] = masterPIN.getTriesRemaining();
 		buffer[RESPONSE_STATUS_OFFSET + 1] = userPIN.getTriesRemaining();
-
+		// sending the version of Applet
 		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)2);
 	}
 
@@ -656,11 +685,11 @@ public class KeepassNFC extends Applet {
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
-		if (length != (short)0)
+		if (length != (short)0) {
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
-		if ((short)-length != (short)0)
-			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
-
+		}
 		try {
 			card_key.genKeyPair();
 		} catch (CryptoException e) {
@@ -674,7 +703,10 @@ public class KeepassNFC extends Applet {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 			Util.setShort(buffer, (short)(RESPONSE_STATUS_OFFSET + 1), RSA_KEYLENGTH);
 			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)3);
-		} else {
+		} 
+		else {
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.INVALID_INIT));
 		}
 	}
@@ -698,7 +730,6 @@ public class KeepassNFC extends Applet {
 	{
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
-
 		short offset = Util.getShort(buffer, ISO7816.OFFSET_CDATA);
 		// check the data length fits into the scratch area, prevent fault induction
 		if ((short)scratch_area.length >= (short)(offset + length - 2)) {
@@ -737,28 +768,22 @@ public class KeepassNFC extends Applet {
 			card_cipher.init(private_key, Cipher.MODE_DECRYPT);
 			// performing the decryption
 			decryptedBytes = card_cipher.doFinal(input, offset, (short)(RSA_KEYLENGTH / 8), aes_key_temporary, (short)0);
-			// on cardTools simulator doFinal can (not always) raise org.bouncycastle.crypto.DataLengthException:
-			// - normally happens when scratch_area is not set to the actual key to be decyphered.
-			// - means that data in scratch_area represent a too big number to be evaluated
-			// - that's catchable with a RuntimeException.
 			if (decryptedBytes == (short)0)
-				throw new CryptoException(CryptoException.ILLEGAL_USE);
+				ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.ILLEGAL_USE));
 			output.setKey(aes_key_temporary, (short)0);
 			if (!output.isInitialized())
-				throw new CryptoException(CryptoException.INVALID_INIT);
+				ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.INVALID_INIT));
 		} catch (CryptoException e) {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		        Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 			output.clearKey();
 			decryptedBytes = 0;
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
-		} catch (RuntimeException e) {
-			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | (short)9));
 		} finally {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		        Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		}
 		return decryptedBytes;
 	}
