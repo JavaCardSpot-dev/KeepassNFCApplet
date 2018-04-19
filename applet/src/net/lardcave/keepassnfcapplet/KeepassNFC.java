@@ -31,8 +31,9 @@ public class KeepassNFC extends Applet {
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
-
-	final static byte VERSION                      = (byte)0x2;   // version for Applet
+	//clash with "RESPONSE_FAILED"
+	//final static byte VERSION                      = (byte)0x2;   // version for Applet
+	final static byte VERSION                      = (byte)0x3;   // version for Applet
 
 	final static short SW_UNCHECKED_MASTER_PIN     = (short)0x9700;  // SW for unchecked Master PIN
 	final static short SW_UNCHECKED_USER_PIN       = (short)0x9800;  // SW for unchecked User PIN
@@ -340,7 +341,7 @@ public class KeepassNFC extends Applet {
 
 		byte[] buffer = apdu.getBuffer();
 		short dataLen = apdu.setIncomingAndReceive();
-
+ 
 		// check length of new Master PIN
 		if (dataLen < MASTER_PIN_MIN_LENGTH || dataLen > MASTER_PIN_MAX_LENGTH) {
 			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
