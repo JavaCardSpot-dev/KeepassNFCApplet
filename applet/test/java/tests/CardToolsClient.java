@@ -141,6 +141,7 @@ public class CardToolsClient extends AbstractClient {
 		return resp;
 	}
 
+	@Override
 	public ResponseAPDU sendAPDU(byte[] apdu) throws CardException
 	{
 		return sendAPDU(new CommandAPDU(apdu));

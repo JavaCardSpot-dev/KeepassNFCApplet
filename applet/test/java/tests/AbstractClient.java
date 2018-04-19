@@ -457,7 +457,13 @@ abstract public class AbstractClient {
 
 	abstract public CardTerminal getFirstCardTerminal() throws CardException;
 
-	public ResponseAPDU sendAPDU(CardChannel channel, byte[] apdu) throws CardException {
+	public ResponseAPDU sendAPDU(byte[] apdu) throws CardException
+	{
+		return sendAPDU(getCardChannel(), apdu);
+	}
+
+	public ResponseAPDU sendAPDU(CardChannel channel, byte[] apdu) throws CardException
+	{
 		return sendAPDU(channel, new CommandAPDU(apdu));
 	}
 
