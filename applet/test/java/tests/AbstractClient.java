@@ -260,17 +260,6 @@ abstract public class AbstractClient {
 		setPasswordKeyIv(randomBytes(16));
 	}
 
-	private byte[] sendSingleCommand(byte[] command) throws CardException
-	{
-		CardChannel channel = getCardChannel();
-		if (channel != null) {
-			ResponseAPDU response = sendAPDU(channel, command);
-			return response.getBytes();
-		} else {
-			return null;
-		}
-	}
-
 	private byte[] encryptWithCardKey(CardChannel channel, byte[] input) throws CardException
 	{
 		RSAPublicKey publicKey = getCardPubKey(channel);
@@ -383,7 +372,7 @@ abstract public class AbstractClient {
 	public byte[] getVersion() throws CardException
 	{
 		byte[] command = constructApdu(INS_CARD_GET_VERSION);
-		byte[] response = sendSingleCommand(command);
+		byte[] response = sendAPDU(command).getData();
 
 		if (response != null) {
 			System.out.println("Applet version " + response[1]);
