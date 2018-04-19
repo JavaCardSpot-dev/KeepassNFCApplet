@@ -350,8 +350,9 @@ public class KeepassNFC extends Applet {
                 if (MASTER_PIN_MIN_LENGTH >dataLen || MASTER_PIN_MAX_LENGTH <dataLen) {
 			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 		}
-
+                // updation of Master PIN
 		masterPIN.update(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen);
+		// Sending respsonse for succesfull updation
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 	}
@@ -482,9 +483,12 @@ public class KeepassNFC extends Applet {
 				apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 				ISOException.throwIt(ISO7816.SW_NO_ERROR);
 			}
+		else
+		{
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+		}
 	}
 
 
