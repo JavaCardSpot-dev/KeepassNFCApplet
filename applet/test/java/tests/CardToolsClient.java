@@ -69,6 +69,11 @@ public class CardToolsClient extends AbstractClient {
 		cardType = card_type;
 	}
 
+	public RunConfig.CARD_TYPE getCardType()
+	{
+		return cardType;
+	}
+
 	public void setThrowOnCommandException(boolean throwOnException)
 	{
 		throwOnCommandException = throwOnException;

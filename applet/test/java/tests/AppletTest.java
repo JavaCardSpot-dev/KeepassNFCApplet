@@ -20,8 +20,8 @@ import java.util.Arrays;
  * @author McCio
  */
 public class AppletTest {
-	final private RunConfig.CARD_TYPE JCARDSIM = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
-	final private RunConfig.CARD_TYPE PHYSICAL = RunConfig.CARD_TYPE.PHYSICAL;
+	final static private RunConfig.CARD_TYPE JCARDSIM = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
+	final static private RunConfig.CARD_TYPE PHYSICAL = RunConfig.CARD_TYPE.PHYSICAL;
 	protected CardToolsClient client = null;
 
 	public AppletTest()
@@ -36,7 +36,7 @@ public class AppletTest {
 		client = new CardToolsClient(KeepassNFC.class, "F0375472804FD5FA0F243E42C1B63825");
 		client.setThrowOnCommandException(true);
 		client.setCardType(JCARDSIM);
-		// client.setCardType(PHYSICAL);
+		//client.setCardType(PHYSICAL);
 	}
 
 	@AfterGroups(groups = {"Installing"})
@@ -116,9 +116,11 @@ public class AppletTest {
 	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Failing"})
 	public void uninitializedGetCardKey() throws Exception
 	{
-		verifyUserPIN();
-		byte[] command = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{1, 0, 0});
-		assertGeneralCryptoError(command);
+		if (client.getCardType() != PHYSICAL) { // in PHYSICAL card no guarantee on uninitialization of Card Key can be given
+			verifyUserPIN();
+			byte[] command = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{1, 0, 0});
+			assertGeneralCryptoError(command);
+		}
 	}
 
 	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Failing"})
@@ -341,9 +343,11 @@ public class AppletTest {
 	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void uninitializedCardKeySettingPasswordKey() throws Exception
 	{
-		verifyUserPIN();
-		byte[] apdu = AbstractClient.constructApdu((byte)0x71);
-		assertGeneralCryptoError(apdu, "setPasswordKey should throw error if card hasn't any key.");
+		if (client.getCardType() != PHYSICAL) { // in PHYSICAL card no guarantee on uninitialization of Card Key can be given
+			verifyUserPIN();
+			byte[] apdu = AbstractClient.constructApdu((byte)0x71);
+			assertGeneralCryptoError(apdu, "setPasswordKey should throw error if card hasn't any key.");
+		}
 	}
 
 	public void assertIncorrectLength(byte[] apdu, String msg) {
@@ -367,9 +371,11 @@ public class AppletTest {
 	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void uninitializedCardKeySettingTransactionKey() throws Exception
 	{
-		verifyUserPIN();
-		byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]);
-		assertGeneralCryptoError(apdu, "prepareDecryption should throw error if card hasn't any key.");
+		if (client.getCardType() != PHYSICAL) { // in PHYSICAL card no guarantee on uninitialization of Card Key can be given
+			verifyUserPIN();
+			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]);
+			assertGeneralCryptoError(apdu, "prepareDecryption should throw error if card hasn't any key.");
+		}
 	}
 
 	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
