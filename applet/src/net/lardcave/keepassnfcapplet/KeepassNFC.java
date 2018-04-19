@@ -176,10 +176,10 @@ public class KeepassNFC extends Applet {
 	private static final short PUBKEY_REQUEST_OFFSET_IDX = (short)(ISO7816.OFFSET_CDATA + 1);
 	private static final short PUBKEY_RESPONSE_EXPONENT_OFFSET = (short)3;
 	private static final short PUBKEY_RESPONSE_MODULUS_OFFSET = (short)5;
-	private static final short PUBKEY_RESPONSE_LENGTH_IDX = (short)(ISO7816.OFFSET_CDATA + 1);
-	private static final short PUBKEY_RESPONSE_REMAIN_IDX = (short)(ISO7816.OFFSET_CDATA + 3);
-	private static final short PUBKEY_RESPONSE_EXPONENT_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_EXPONENT_OFFSET);
-	private static final short PUBKEY_RESPONSE_MODULUS_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_MODULUS_OFFSET);
+	private static final short PUBKEY_RESPONSE_LENGTH_IDX = (short)(RESPONSE_STATUS_OFFSET + 1);
+	private static final short PUBKEY_RESPONSE_REMAIN_IDX = (short)(RESPONSE_STATUS_OFFSET + 3);
+	private static final short PUBKEY_RESPONSE_EXPONENT_IDX = (short)(RESPONSE_STATUS_OFFSET + PUBKEY_RESPONSE_EXPONENT_OFFSET);
+	private static final short PUBKEY_RESPONSE_MODULUS_IDX = (short)(RESPONSE_STATUS_OFFSET + PUBKEY_RESPONSE_MODULUS_OFFSET);
 
 	/**
 	 * Method to verify Master PIN
@@ -218,7 +218,7 @@ public class KeepassNFC extends Applet {
 		short dataLen = apdu.setIncomingAndReceive();
 		if (userPIN.check(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen)) {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 		} else {
 			ISOException.throwIt((short)(SW_BAD_PIN | userPIN.getTriesRemaining()));
 		}
@@ -256,7 +256,7 @@ public class KeepassNFC extends Applet {
 
 		userPIN.update(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen);
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 	}
 
 	/**
@@ -353,7 +353,7 @@ public class KeepassNFC extends Applet {
 		} catch (CryptoException e) {
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
 		}
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, lengthOut);
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, lengthOut);
 	}
 
 	/**
@@ -381,11 +381,11 @@ public class KeepassNFC extends Applet {
 			if ((short)-length == (short)0) {
 				decryptWithCardKey(scratch_area, (short)0, password_key);
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+				apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 				ISOException.throwIt(ISO7816.SW_NO_ERROR);
 			}
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
 
@@ -428,11 +428,11 @@ public class KeepassNFC extends Applet {
 					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
 				}
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+				apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 				ISOException.throwIt(ISO7816.SW_NO_ERROR);
 			}
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
 
@@ -495,7 +495,7 @@ public class KeepassNFC extends Applet {
 			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		}
 
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)(encrypted + 1));
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)(encrypted + 1));
 	}
 
 	/**
@@ -512,10 +512,10 @@ public class KeepassNFC extends Applet {
 		byte[] buffer = apdu.getBuffer();
 		apdu.setIncomingAndReceive();
 
-		buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
-		buffer[ISO7816.OFFSET_CDATA + 1] = VERSION;
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+		buffer[RESPONSE_STATUS_OFFSET + 1] = VERSION;
 		// sending the version of Applet
-		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)2);
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)2);
 	}
 
 	/**
@@ -538,7 +538,7 @@ public class KeepassNFC extends Applet {
 
 		if (length != (short)0) {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 		}
 		try {
@@ -551,12 +551,12 @@ public class KeepassNFC extends Applet {
 
 		// checking card keys are generated correctly or not
 		if (card_key.getPublic().isInitialized() && card_key.getPrivate().isInitialized()) {
-			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
-			Util.setShort(buffer, (short)(ISO7816.OFFSET_CDATA + 1), RSA_KEYLENGTH);
-			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)3);
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+			Util.setShort(buffer, (short)(RESPONSE_STATUS_OFFSET + 1), RSA_KEYLENGTH);
+			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)3);
 		} else {
-			buffer[ISO7816.OFFSET_CDATA] = RESPONSE_FAILED;
-			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.INVALID_INIT));
 		}
 	}
@@ -584,9 +584,9 @@ public class KeepassNFC extends Applet {
 		if ((short)scratch_area.length >= (short)(offset + length - 2)) {
 			if ((short)(scratch_area.length + 2) >= (short)(offset + length)) {
 				Util.arrayCopy(buffer, (short)(ISO7816.OFFSET_CDATA + 2), scratch_area, offset, (short)(length - 2));
-				buffer[ISO7816.OFFSET_CDATA] = RESPONSE_SUCCEEDED;
-				Util.setShort(buffer, (short)(ISO7816.OFFSET_CDATA + 1), (short)(scratch_area.length - offset - length + 2));
-				apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)3);
+				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+				Util.setShort(buffer, (short)(RESPONSE_STATUS_OFFSET + 1), (short)(scratch_area.length - offset - length + 2));
+				apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)3);
 				ISOException.throwIt(ISO7816.SW_NO_ERROR);
 			}
 		}
