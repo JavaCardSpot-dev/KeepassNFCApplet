@@ -439,15 +439,17 @@ abstract public class AbstractClient {
 
 	public static byte[] constructApdu(byte command, byte[] data)
 	{
-		byte[] apdu = new byte[HEADER_LENGTH + data.length];
+		byte[] apdu = new byte[HEADER_LENGTH + (data == null ? 0 : data.length)];
 		apdu[OFFSET_CLA] = CLA_CARD_KPNFC_CMD;
 		apdu[OFFSET_INS] = command;
 		apdu[OFFSET_P1] = (byte)0;
 		apdu[OFFSET_P2] = (byte)0;
-		apdu[OFFSET_LC] = (byte)data.length;
-
-		System.arraycopy(data, 0, apdu, OFFSET_DATA, data.length);
-
+		if (data != null) {
+			apdu[OFFSET_LC] = (byte)data.length;
+			System.arraycopy(data, 0, apdu, OFFSET_DATA, data.length);
+		} else {
+			apdu[OFFSET_LC] = 0;
+		}
 		return apdu;
 	}
 
