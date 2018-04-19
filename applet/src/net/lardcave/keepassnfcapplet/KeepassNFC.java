@@ -200,6 +200,11 @@ public class KeepassNFC extends Applet {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
 		} else {
+			if (masterPIN.getTriesRemaining() == (short)0) {
+				cleanAllSensitiveData();
+			} else {
+				cleanTransientSensitiveData();
+			}
 			ISOException.throwIt((short)(SW_BAD_PIN | masterPIN.getTriesRemaining()));
 		}
 
@@ -222,6 +227,7 @@ public class KeepassNFC extends Applet {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 		} else {
+			cleanTransientSensitiveData();
 			ISOException.throwIt((short)(SW_BAD_PIN | userPIN.getTriesRemaining()));
 		}
 	}
