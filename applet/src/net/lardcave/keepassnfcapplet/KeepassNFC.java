@@ -66,8 +66,8 @@ public class KeepassNFC extends Applet {
 	{
 		// Generating RSA Key pair
 		card_key = new KeyPair(RSA_ALGORITHM, RSA_KEYLENGTH);
-		// AES -128 Bit Passowrd Key
-		password_key = (AESKey)KeyBuilder.buildKey(KeyBuilder.TYPE_AES, KeyBuilder.LENGTH_AES_128, false);
+		// AES -256 Bit Passowrd Key
+		password_key = (AESKey)KeyBuilder.buildKey(KeyBuilder.TYPE_AES, KeyBuilder.LENGTH_AES_256, false);
 		// AES -128 Bit Transaction key
 		transaction_key = (AESKey)KeyBuilder.buildKey(KeyBuilder.TYPE_AES_TRANSIENT_DESELECT, KeyBuilder.LENGTH_AES_128, false);
 

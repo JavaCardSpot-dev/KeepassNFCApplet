@@ -59,7 +59,7 @@ abstract public class AbstractClient {
 	public static final byte OFFSET_DATA = 0x05;
 	public static final byte HEADER_LENGTH = 0x05;
 
-	public static final int AES_LEN = 128;
+	public static final int AES_LEN = 256;
 
 	AbstractClient()
 	{
