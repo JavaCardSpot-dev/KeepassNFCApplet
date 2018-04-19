@@ -22,7 +22,7 @@ import java.util.Arrays;
 public class AppletTest {
 	final private RunConfig.CARD_TYPE JCARDSIM = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
 	final private RunConfig.CARD_TYPE PHYSICAL = RunConfig.CARD_TYPE.PHYSICAL;
-	private CardToolsClient client = null;
+	protected CardToolsClient client = null;
 
 	public AppletTest()
 	{
