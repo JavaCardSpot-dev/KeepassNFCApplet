@@ -3,6 +3,7 @@ package tests;
 import cardTools.CardManager;
 import cardTools.RunConfig;
 import cardTools.Util;
+import javacard.framework.ISO7816;
 import net.lardcave.keepassnfcapplet.KeepassNFC;
 import org.junit.Assert;
 import org.testng.annotations.*;
@@ -101,23 +102,15 @@ public class AppletTest {
 	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Failing"})
 	public void unverifiedGenerateNewCardKey() throws Exception
 	{
-		try {
-			short keyLength = client.generateCardKey();
-			Assert.assertEquals(-1, keyLength);
-		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("98"));
-		}
+		byte[] command = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, AbstractClient.INS_CARD_GENERATE_CARD_KEY);
+		assertUnverifiedUserPIN(command);
 	}
 
 	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Failing"})
 	public void unverifiedGetCardKey() throws Exception
 	{
-		try {
-			RSAPublicKey key = client.getCardPubKey(client.getCardChannel());
-			Assert.assertNull(key);
-		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("98"));
-		}
+		byte[] command = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, AbstractClient.INS_CARD_GET_CARD_PUBKEY);
+		assertUnverifiedUserPIN(command);
 	}
 
 	@Test(dependsOnGroups = {"Configuring", "PIN"})
@@ -148,28 +141,29 @@ public class AppletTest {
 		Assert.assertEquals(true, passwordSet);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
-	public void unverifiedSetPasswordKey() throws Exception
-	{
-		byte[] command = client.constructApdu(client.INS_CARD_SET_PASSWORD_KEY);
+	public void assertUnverifiedUserPIN(byte[] command) {
 		try {
 			int response = client.sendAPDU(command).getSW();
 			Assert.assertEquals(0x98FF, response | 0xFF);
+			if (client.isThrowOnCommandException())
+				Assert.fail("Expecting a failure with SW=0x98FF (unverified User PIN)");
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("98"));
 		}
 	}
 
 	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
+	public void unverifiedSetPasswordKey() throws Exception
+	{
+		byte[] command = AbstractClient.constructApdu(AbstractClient.INS_CARD_SET_PASSWORD_KEY);
+		assertUnverifiedUserPIN(command);
+	}
+
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
 	public void unverifiedClassCMD() throws Exception
 	{
-		byte[] command = client.constructApdu(client.CLA_CARD_KPNFC_CMD, (byte)0x00);
-		try {
-			int response = client.sendAPDU(command).getSW();
-			Assert.assertEquals(0x98FF, response | 0xFF);
-		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("98"));
-		}
+		byte[] command = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, (byte)0x00);
+		assertUnverifiedUserPIN(command);
 	}
 
 	@Test(dependsOnGroups = {"Configuring", "PIN"})
@@ -224,25 +218,15 @@ public class AppletTest {
 	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
 	public void unverifiedPrepareDecryption() throws Exception
 	{
-		byte[] command = client.constructApdu(client.INS_CARD_PREPARE_DECRYPTION);
-		try {
-			int response = client.sendAPDU(command).getSW();
-			Assert.assertEquals(0x98FF, response | 0xFF);
-		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("98"));
-		}
+		byte[] command = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION);
+		assertUnverifiedUserPIN(command);
 	}
 
 	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
 	public void unverifiedDecryptBlock() throws Exception
 	{
-		byte[] command = client.constructApdu(client.INS_CARD_DECRYPT_BLOCK);
-		try {
-			int response = client.sendAPDU(command).getSW();
-			Assert.assertEquals(0x98FF, response | 0xFF);
-		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("98"));
-		}
+		byte[] command = AbstractClient.constructApdu(AbstractClient.INS_CARD_DECRYPT_BLOCK);
+		assertUnverifiedUserPIN(command);
 	}
 
 	@Test(dependsOnGroups = {"Configuring", "PIN"})
@@ -270,75 +254,91 @@ public class AppletTest {
 	public void unsupportedCLA() throws Exception
 	{
 		try {
-			byte[] apdu = client.constructApdu((byte)0x00, (byte)0x00);
-			client.sendAPDU(apdu);
-			Assert.fail("Unsupported CLA should throw errors.");
-		} catch (CardException ignored) {
+			byte[] apdu = AbstractClient.constructApdu((byte)0x00, (byte)0x00);
+			Assert.assertEquals(ISO7816.SW_CLA_NOT_SUPPORTED, (short)client.sendAPDU(apdu).getSW());
+			if (client.isThrowOnCommandException())
+				Assert.fail("Unsupported CLA should throw errors.");
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6E00"));
+		}
+	}
+
+	public void unsupportedINS(byte[] apdu) throws Exception
+	{
+		try {
+			Assert.assertEquals(ISO7816.SW_INS_NOT_SUPPORTED, (short)client.sendAPDU(apdu).getSW());
+			if (client.isThrowOnCommandException())
+				Assert.fail("Unsupported INS should throw errors.");
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6D00"));
 		}
 	}
 
 	@Test(groups = {"Failing"})
 	public void unsupportedINSall() throws Exception
 	{
-		byte[] apdu = client.constructApdu(client.CLA_CARD_KPNFC_ALL, (byte)0x00);
-		try {
-			client.sendAPDU(apdu);
-			Assert.fail("Unsupported INS should throw errors.");
-		} catch (CardException ignored) {
-		}
+		byte[] apdu = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_ALL, (byte)0x00);
+		unsupportedINS(apdu);
 	}
 
 	@Test(groups = {"Failing"})
 	public void unsupportedINScmd() throws Exception
 	{
-		byte[] apdu = client.constructApdu(client.CLA_CARD_KPNFC_CMD, (byte)0x00);
-		try {
-			client.sendAPDU(apdu);
-		} catch (CardException ignored) {
-		}
+		byte[] apdu = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, (byte)0x00);
+		verifyUserPIN();
+		unsupportedINS(apdu);
 	}
 
 	@Test(groups = {"Failing"})
 	public void unsupportedINSpin() throws Exception
 	{
-		byte[] apdu = client.constructApdu(client.CLA_CARD_KPNFC_PIN, (byte)0x00);
-		try {
-			client.sendAPDU(apdu);
-		} catch (CardException ignored) {
-		}
+		byte[] apdu = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_PIN, (byte)0x00);
+		unsupportedINS(apdu);
 	}
 
 	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void uninitializedCardKeySettingPasswordKey() throws Exception
 	{
 		verifyUserPIN();
+		byte[] apdu = AbstractClient.constructApdu((byte)0x71);
 		try {
-			client.sendAPDU(client.constructApdu((byte)0x71));
-			Assert.fail("setPasswordKey should throw error if card hasn't any key.");
-		} catch (CardException ignored) {
+			Assert.assertEquals(0xF1FF, client.sendAPDU(apdu).getSW() | 0xFF);
+			if (client.isThrowOnCommandException())
+				Assert.fail("setPasswordKey should throw error if card hasn't any key.");
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("F1"));
+		}
+	}
+
+	public void assertIncorrectLength(byte[] apdu, String msg) {
+		try {
+			Assert.assertEquals(0x6700, client.sendAPDU(apdu).getSW());
+			if (client.isThrowOnCommandException())
+				Assert.fail(msg);
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6700"));
 		}
 	}
 
 	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
-	public void uncorrectLengthPasswordKey() throws Exception
+	public void incorrectLengthPasswordKey() throws Exception
 	{
 		verifyUserPIN();
-		try {
-			byte[] apdu = client.constructApdu((byte)0x71, new byte[]{0x01, 0x02});
-			client.sendAPDU(apdu);
-			Assert.fail("setPasswordKey should throw error if data is provided in request APDU.");
-		} catch (CardException ignored) {
-		}
+		byte[] apdu = AbstractClient.constructApdu((byte)0x71, new byte[]{0x01, 0x02});
+		assertIncorrectLength(apdu, "setPasswordKey should throw error if data is provided in request APDU.");
 	}
 
 	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void uninitializedCardKeySettingTransactionKey() throws Exception
 	{
 		verifyUserPIN();
+		byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]);
 		try {
-			client.sendAPDU(AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]));
-			Assert.fail("prepareDecryption should throw error if card hasn't any key.");
-		} catch (CardException ignored) {
+			Assert.assertEquals(0xF1FF, client.sendAPDU(apdu).getSW() | 0xFF);
+			if (client.isThrowOnCommandException())
+				Assert.fail("prepareDecryption should throw error if card hasn't any key.");
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("F1"));
 		}
 	}
 
@@ -346,49 +346,29 @@ public class AppletTest {
 	public void incorrectLengthTransactionKey() throws Exception
 	{
 		verifyUserPIN();
-		try {
-			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION);
-			client.sendAPDU(apdu);
-			Assert.fail("prepareDecryption should throw error if no data is provided in request APDU.");
-		} catch (CardException ignored) {
-		}
-		try {
-			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[16]);
-			client.sendAPDU(apdu);
-			Assert.fail("prepareDecryption should throw error if incorrect data length (16) is provided in request APDU.");
-		} catch (CardException ignored) {
-		}
-		try {
-			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[64]);
-			client.sendAPDU(apdu);
-			Assert.fail("prepareDecryption should throw error if incorrect data length (64) is provided in request APDU.");
-		} catch (CardException ignored) {
-		}
+		byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION);
+		assertIncorrectLength(apdu, "prepareDecryption should throw error if no data is provided in request APDU.");
+		apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[16]);
+		assertIncorrectLength(apdu, "prepareDecryption should throw error if incorrect data length (16) is provided in request APDU.");
+		apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[64]);
+		assertIncorrectLength(apdu, "prepareDecryption should throw error if incorrect data length (64) is provided in request APDU.");
 	}
 
 	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void incorrectLengthGenCardKey() throws Exception
 	{
 		verifyUserPIN();
-		try {
-			byte[] apdu = client.constructApdu(AbstractClient.INS_CARD_GENERATE_CARD_KEY, new byte[]{0x01, 0x02});
-			client.sendAPDU(apdu);
-			Assert.fail("generateCardKey should throw error if data is provided in request APDU.");
-		} catch (CardException ignored) {
-		}
+		byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_GENERATE_CARD_KEY, new byte[]{0x01, 0x02});
+		assertIncorrectLength(apdu, "generateCardKey should throw error if data is provided in request APDU.");
 	}
 
 	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
 	public void incorrectLengthWriteToScratch() throws Exception
 	{
 		verifyUserPIN();
-		try {
-			// 0x104 = 260 is current length of scratch area. Testing with 0x102 length and 3 bytes goes after the end.
-			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_WRITE_TO_SCRATCH, new byte[]{0x01, 0x02, 0x03, 0x04, 0x05});
-			client.sendAPDU(apdu);
-			Assert.fail("writeToScratch should throw error if data provided would go after the end of scratch area array.");
-		} catch (CardException ignored) {
-		}
+		// 0x104 = 260 is current length of scratch area. Testing with 0x102 length and 3 bytes goes after the end.
+		byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_WRITE_TO_SCRATCH, new byte[]{0x01, 0x02, 0x03, 0x04, 0x05});
+		assertIncorrectLength(apdu, "writeToScratch should throw error if data provided would go after the end of scratch area array.");
 	}
 
 	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
@@ -396,18 +376,10 @@ public class AppletTest {
 	{
 		verifyUserPIN();
 		// expects 3 bytes, test with less and more
-		try {
-			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{0x01, 0x02});
-			client.sendAPDU(apdu);
-			Assert.fail("getCardPubKey should throw error if data provided is not 3 bytes.");
-		} catch (CardException ignored) {
-		}
-		try {
-			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{0x01, 0x02, 0x03, 0x04});
-			client.sendAPDU(apdu);
-			Assert.fail("getCardPubKey should throw error if data provided is not 3 bytes.");
-		} catch (CardException ignored) {
-		}
+		byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{0x01, 0x02});
+		assertIncorrectLength(apdu, "getCardPubKey should throw error if data provided is not 3 bytes.");
+		apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{0x01, 0x02, 0x03, 0x04});
+		assertIncorrectLength(apdu, "getCardPubKey should throw error if data provided is not 3 bytes.");
 	}
 
 	@Test(groups = {"PIN", "Failing"})

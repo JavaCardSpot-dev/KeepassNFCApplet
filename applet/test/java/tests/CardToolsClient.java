@@ -74,6 +74,11 @@ public class CardToolsClient extends AbstractClient {
 		throwOnCommandException = throwOnException;
 	}
 
+	public boolean isThrowOnCommandException()
+	{
+		return throwOnCommandException;
+	}
+
 	@Override
 	protected short getShort(byte[] buffer, int idx)
 	{
