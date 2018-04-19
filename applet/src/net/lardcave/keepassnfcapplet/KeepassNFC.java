@@ -276,7 +276,7 @@ public class KeepassNFC extends Applet {
 	 * response APDU (in case of wrong input data):
 	 * * SW: SW_WRONG_LENGTH (0x6700) or SW_WRONG_DATA(0x6A80)
 	 * response APDU (in case of crypto errors):
-	 * * SW: SW_CRYPTO_EXCEPTION (0xF100)
+	 * * SW: SW_CRYPTO_EXCEPTION (0xF1rr), with rr=reason code from CryptoException
 	 * response APDU (in case of User PIN not verified):
 	 * * SW: SW_UNCHECKED_USER_PIN (0x98nn), with nn=number of tries remaining
 	 * response APDU (in case of unrecognized request type):
@@ -319,11 +319,11 @@ public class KeepassNFC extends Applet {
 
 				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
 				if (!key.isInitialized())
-					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
+					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.UNINITIALIZED_KEY));
 				ret_key_length = key.getExponent(buffer, PUBKEY_RESPONSE_EXPONENT_IDX);
 				// prevent Fault Induction on key.getExponent
 				if (ret_key_length == (short)0) // don't need second FI check, too near
-					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
+					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.ILLEGAL_VALUE));
 
 				Util.setShort(buffer, PUBKEY_RESPONSE_LENGTH_IDX, ret_key_length);
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
@@ -334,11 +334,11 @@ public class KeepassNFC extends Applet {
 				// Always rewrite public modulus in scratch buffer, prevents reading of arbitrary scratch_area positions
 				RSAPublicKey key = (RSAPublicKey)card_key.getPublic();
 				if (!key.isInitialized())
-					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
+					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.UNINITIALIZED_KEY));
 				ret_key_length = key.getModulus(scratch_area, (short)0);
 				// prevent Fault Induction on key.getModulus
 				if (ret_key_length == (short)0) // don't need second FI check, too near
-					ISOException.throwIt(SW_CRYPTO_EXCEPTION);
+					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.ILLEGAL_VALUE));
 
 				// calculating the length of key
 				short amountToSend = (short)(ret_key_length - offset);
@@ -377,8 +377,6 @@ public class KeepassNFC extends Applet {
 	 * * 1 byte: RESPONSE_SUCCEEDED
 	 * response APDU (in case of provided input):
 	 * * SW: SW_WRONG_LENGTH (0x6700)
-	 * response APDU (in case of decrypt error):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
 	 * response APDU (in case of User PIN not verified):
 	 * * SW: SW_UNCHECKED_USER_PIN (0x98nn), with nn=number of tries remaining
 	 *
@@ -426,7 +424,7 @@ public class KeepassNFC extends Applet {
 	 * response APDU (in case of incorrect length of provided input):
 	 * * SW: SW_WRONG_LENGTH (0x6700)
 	 * response APDU (in case of crypto error):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 * * SW: SW_CRYPTO_EXCEPTION (0xF1rr), with rr=reason code from CryptoException
 	 * response APDU (in case of User PIN not verified):
 	 * * SW: SW_UNCHECKED_USER_PIN (0x98nn), with nn=number of tries remaining
 	 *
@@ -457,7 +455,7 @@ public class KeepassNFC extends Applet {
 				} catch (CryptoException e) {
 					// cleanup sensitive data
 					transaction_key.clearKey();
-					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
 				}
 				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 				apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
