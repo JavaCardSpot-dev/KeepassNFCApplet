@@ -86,7 +86,7 @@ public class AppletTest {
 		Assert.assertEquals((byte)2, version);
 	}
 
-	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Configuring"})
+	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Configuring"}, timeOut = 10000)
 	public void setupNewCardKey() throws Exception
 	{
 		verifyUserPIN();
@@ -147,7 +147,7 @@ public class AppletTest {
 		Assert.assertEquals(true, passwordSet);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
 	public void setDefaultPasswordKey() throws Exception
 	{
 		verifyUserPIN();
@@ -157,7 +157,7 @@ public class AppletTest {
 		Assert.assertEquals(true, passwordSet);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
 	public void setRandomPasswordKey() throws Exception
 	{
 		verifyUserPIN();
@@ -210,7 +210,7 @@ public class AppletTest {
 		assertUnverifiedUserPIN(command);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
 	public void clientEncrypt() throws Exception
 	{
 		verifyUserPIN();
@@ -273,21 +273,21 @@ public class AppletTest {
 		assertUnverifiedUserPIN(command);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
 	public void cardDecrypt16() throws Exception
 	{
 		verifyUserPIN();
 		cardDecrypt("TestDataCorrectL".getBytes());
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
 	public void cardDecrypt32() throws Exception
 	{
 		verifyUserPIN();
 		cardDecrypt("TestDataCorrectLengthThats32Byte".getBytes());
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
 	public void cardDecrypt64() throws Exception
 	{
 		verifyUserPIN();
