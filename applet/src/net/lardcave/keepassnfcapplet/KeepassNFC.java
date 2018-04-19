@@ -99,6 +99,8 @@ public class KeepassNFC extends Applet {
 		// transaction_cipher
 		Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		userPIN.reset();
+		masterPIN.reset();
 	}
         // Method to clear all sensitive data
 	private void cleanAllSensitiveData() {
