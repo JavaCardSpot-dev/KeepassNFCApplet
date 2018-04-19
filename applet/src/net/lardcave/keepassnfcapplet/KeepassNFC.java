@@ -31,7 +31,6 @@ public class KeepassNFC extends Applet {
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
-	//clash with "RESPONSE_FAILED"
 	//final static byte VERSION                      = (byte)0x2;   // version for Applet
 	final static byte VERSION                      = (byte)0x3;   // version for Applet
 
@@ -624,8 +623,7 @@ public class KeepassNFC extends Applet {
 		} finally {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
-		//Duplicate statement
-		     //Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
+		        Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		}
 
 		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)(encrypted + 1));
@@ -785,16 +783,14 @@ public class KeepassNFC extends Applet {
 		} catch (CryptoException e) {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-		//Duplicate statement
-		     //Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		        Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 			output.clearKey();
 			decryptedBytes = 0;
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
 		} finally {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-		//Duplicate statement
-		     //Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		        Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		}
 		return decryptedBytes;
 	}
