@@ -113,6 +113,29 @@ public class AppletTest {
 		assertUnverifiedUserPIN(command);
 	}
 
+	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Failing"})
+	public void uninitializedGetCardKey() throws Exception
+	{
+		verifyUserPIN();
+		byte[] command = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{1, 0, 0});
+		assertGeneralCryptoError(command);
+	}
+
+	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Failing"})
+	public void incorrectOffsetGetCardExponent() throws Exception
+	{
+		verifyUserPIN();
+		byte[] command = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, AbstractClient.INS_CARD_GET_CARD_PUBKEY, new byte[]{1, 0, 1});
+		try {
+			int response = client.sendAPDU(command).getSW();
+			Assert.assertEquals(0x6A80, response);
+			if (client.isThrowOnCommandException())
+				Assert.fail("Getting Card PubKey Exponent must be done with offset == 0.");
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6A80"));
+		}
+	}
+
 	@Test(dependsOnGroups = {"Configuring", "PIN"})
 	public void setPasswordKey() throws Exception
 	{
@@ -146,10 +169,29 @@ public class AppletTest {
 			int response = client.sendAPDU(command).getSW();
 			Assert.assertEquals(0x98FF, response | 0xFF);
 			if (client.isThrowOnCommandException())
-				Assert.fail("Expecting a failure with SW=0x98FF (unverified User PIN)");
+				Assert.fail("Expecting a failure with SW=0x98.. (unverified User PIN)");
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("98"));
 		}
+	}
+
+	public int assertGeneralCryptoError(byte[] command, String msg) {
+		int response;
+		msg = msg != null ? msg : "Expecting a failure with SW=0xF1.. (CryptoException)";
+		try {
+			response = client.sendAPDU(command).getSW();
+			Assert.assertEquals(0xF1FF, response | 0xFF);
+			if (client.isThrowOnCommandException())
+				Assert.fail(msg);
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("F1"));
+			response = Integer.parseInt(e.getMessage().substring(0, 4), 16);
+		}
+		return response;
+	}
+
+	public int assertGeneralCryptoError(byte[] command) {
+		return assertGeneralCryptoError(command, null);
 	}
 
 	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
@@ -301,13 +343,7 @@ public class AppletTest {
 	{
 		verifyUserPIN();
 		byte[] apdu = AbstractClient.constructApdu((byte)0x71);
-		try {
-			Assert.assertEquals(0xF1FF, client.sendAPDU(apdu).getSW() | 0xFF);
-			if (client.isThrowOnCommandException())
-				Assert.fail("setPasswordKey should throw error if card hasn't any key.");
-		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("F1"));
-		}
+		assertGeneralCryptoError(apdu, "setPasswordKey should throw error if card hasn't any key.");
 	}
 
 	public void assertIncorrectLength(byte[] apdu, String msg) {
@@ -333,13 +369,7 @@ public class AppletTest {
 	{
 		verifyUserPIN();
 		byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]);
-		try {
-			Assert.assertEquals(0xF1FF, client.sendAPDU(apdu).getSW() | 0xFF);
-			if (client.isThrowOnCommandException())
-				Assert.fail("prepareDecryption should throw error if card hasn't any key.");
-		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("F1"));
-		}
+		assertGeneralCryptoError(apdu, "prepareDecryption should throw error if card hasn't any key.");
 	}
 
 	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
