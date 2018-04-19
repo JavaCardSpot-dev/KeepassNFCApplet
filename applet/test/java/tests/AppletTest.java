@@ -76,6 +76,13 @@ public class AppletTest {
 		Assert.assertEquals((byte)2, version);
 	}
 
+	@Test(dependsOnGroups = {"Installing"})
+	public void getLockReason() throws Exception
+	{
+		byte[] reason = client.getLockReason();
+		Assert.assertTrue(reason.length >= 2);
+	}
+
 	@Test(dependsOnGroups = {"Installing", "PIN"})
 	public void getVersion2() throws Exception
 	{

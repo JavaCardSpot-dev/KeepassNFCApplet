@@ -40,6 +40,7 @@ abstract public class AbstractClient {
 	public final static byte INS_CARD_GET_CARD_PUBKEY = (byte)0x70;
 	public final static byte INS_CARD_SET_PASSWORD_KEY = (byte)0x71;
 	public final static byte INS_CARD_PREPARE_DECRYPTION = (byte)0x72;
+	public final static byte INS_CARD_GET_LOCK_REASON = (byte)0x72;
 	public final static byte INS_CARD_DECRYPT_BLOCK = (byte)0x73;
 	public final static byte INS_CARD_GET_VERSION = (byte)0x74;
 	public final static byte INS_CARD_GENERATE_CARD_KEY = (byte)0x75;
@@ -396,6 +397,18 @@ abstract public class AbstractClient {
 			return response[1];
 		}
 		throw new CardException("Unknown error");
+	}
+
+	public byte[] getLockReason() throws CardException
+	{
+		byte[] command = constructApdu(CLA_CARD_KPNFC_ALL, INS_CARD_GET_LOCK_REASON);
+		byte[] response = sendAPDU(command).getData();
+
+		if (response.length >= 2) {
+			System.out.println("Remaining Master PIN tries: " + response[0]);
+			System.out.println("Remaining   User PIN tries: " + response[1]);
+		}
+		return response;
 	}
 
 	public byte[] decryptWithTransactionKey(byte[] source, int start, int length, byte[] keyBytes, byte[] ivBytes)

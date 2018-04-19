@@ -13,11 +13,13 @@ public class KeepassNFC extends Applet {
 	final static byte CLA_CARD_KPNFC_PIN           = (byte)0xA0;   // class identification of the pin-related instructions
 	final static byte CLA_CARD_KPNFC_ALL           = (byte)0x90;   // class identification of the instructions always available
 
+	final static byte INS_CARD_GET_VERSION         = (byte)0x74;   // instruction to get version
+	final static byte INS_CARD_GET_LOCK_REASON     = (byte)0x72;   // instruction to lock reason/status
+
 	final static byte INS_CARD_GET_CARD_PUBKEY     = (byte)0x70;   // Instruction to get card public key
 	final static byte INS_CARD_SET_PASSWORD_KEY    = (byte)0x71;   // Instruction to set password key
 	final static byte INS_CARD_PREPARE_DECRYPTION  = (byte)0x72;   // Instruction for PKI safe share the AES decryption
 	final static byte INS_CARD_DECRYPT_BLOCK       = (byte)0x73;
-	final static byte INS_CARD_GET_VERSION         = (byte)0x74;   // instruction to get version
 	final static byte INS_CARD_GENERATE_CARD_KEY   = (byte)0x75;
 	final static byte INS_CARD_WRITE_TO_SCRATCH    = (byte)0x76;
 
@@ -140,7 +142,10 @@ public class KeepassNFC extends Applet {
 		switch (buffer[ISO7816.OFFSET_CLA]) {
 			case CLA_CARD_KPNFC_ALL:
 				switch (buffer[ISO7816.OFFSET_INS]) {
-					case INS_CARD_GET_VERSION:   // get the version
+					case INS_CARD_GET_LOCK_REASON: // get the lock reason
+						getLockReason(apdu);
+						break;
+					case INS_CARD_GET_VERSION:     // get the version
 						getVersion(apdu);
 						break;
 					default:
@@ -599,6 +604,27 @@ public class KeepassNFC extends Applet {
 
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 		buffer[RESPONSE_STATUS_OFFSET + 1] = VERSION;
+		// sending the version of Applet
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)2);
+	}
+
+	/**
+	 * Method to generally get the lock reason. It always return two bytes
+	 * with the amount of remaining tries for both PINs.
+	 * <p>
+	 * response APDU:
+	 * * 1 byte: Remaining tries of Master PIN
+	 * * 1 byte: Remaining tries of User PIN
+	 *
+	 * @param apdu Request APDU, empty (no check).
+	 */
+	protected void getLockReason(APDU apdu)
+	{
+		byte[] buffer = apdu.getBuffer();
+		apdu.setIncomingAndReceive();
+
+		buffer[RESPONSE_STATUS_OFFSET] = masterPIN.getTriesRemaining();
+		buffer[RESPONSE_STATUS_OFFSET + 1] = userPIN.getTriesRemaining();
 		// sending the version of Applet
 		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)2);
 	}
