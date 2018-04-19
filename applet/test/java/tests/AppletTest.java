@@ -19,7 +19,8 @@ import java.util.Arrays;
  * @author McCio
  */
 public class AppletTest {
-	private RunConfig.CARD_TYPE cardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
+	final private RunConfig.CARD_TYPE JCARDSIM = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
+	final private RunConfig.CARD_TYPE PHYSICAL = RunConfig.CARD_TYPE.PHYSICAL;
 	private CardToolsClient client = null;
 
 	public AppletTest()
@@ -30,14 +31,17 @@ public class AppletTest {
 	@BeforeGroups(groups = {"Installing"})
 	public void setUpInstalling() throws Exception
 	{
+		System.out.println("Setting up client");
 		client = new CardToolsClient(KeepassNFC.class, "F0375472804FD5FA0F243E42C1B63825");
 		client.setThrowOnCommandException(true);
-		client.setCardType(cardType);
+		client.setCardType(JCARDSIM);
+		// client.setCardType(PHYSICAL);
 	}
 
 	@AfterGroups(groups = {"Installing"})
 	public void tearDownClient() throws Exception
 	{
+		System.out.println("Disconnecting from client");
 		client.getCardMngr().Disconnect(true);
 	}
 
