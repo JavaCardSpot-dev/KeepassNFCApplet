@@ -130,7 +130,7 @@ public class CardToolsClient extends AbstractClient {
 					break;
 			}
 			if (throwOnCommandException) {
-				throw new CardException(msg);
+				throw new CardException(String.format("%02X", resp.getSW()));
 			} else {
 				System.err.println(msg);
 				System.err.flush();
