@@ -194,14 +194,14 @@ public class AppletTest {
 		return assertGeneralCryptoError(command, null);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
+	@Test(dependsOnGroups = {"PIN"}, groups = {"Failing"})
 	public void unverifiedSetPasswordKey() throws Exception
 	{
 		byte[] command = AbstractClient.constructApdu(AbstractClient.INS_CARD_SET_PASSWORD_KEY);
 		assertUnverifiedUserPIN(command);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
+	@Test(dependsOnGroups = {"PIN"}, groups = {"Failing"})
 	public void unverifiedClassCMD() throws Exception
 	{
 		byte[] command = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, (byte)0x00);
@@ -257,14 +257,14 @@ public class AppletTest {
 		Assert.assertTrue(Arrays.equals(data, decryptedData));
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
+	@Test(dependsOnGroups = {"PIN"}, groups = {"Failing"})
 	public void unverifiedPrepareDecryption() throws Exception
 	{
 		byte[] command = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION);
 		assertUnverifiedUserPIN(command);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
+	@Test(dependsOnGroups = {"PIN"}, groups = {"Failing"})
 	public void unverifiedDecryptBlock() throws Exception
 	{
 		byte[] command = AbstractClient.constructApdu(AbstractClient.INS_CARD_DECRYPT_BLOCK);
