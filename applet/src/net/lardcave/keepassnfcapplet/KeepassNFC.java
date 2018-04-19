@@ -18,10 +18,10 @@ public class KeepassNFC extends Applet {
 	final static byte INS_CARD_GET_VERSION         = (byte)0x74;   // instruction to get version
 	final static byte INS_CARD_GENERATE_CARD_KEY   = (byte)0x75;
 	final static byte INS_CARD_WRITE_TO_SCRATCH    = (byte)0x76;
-        final static byte INS_VERIFY_MasterPIN = (byte) 0x77;
-        final static byte INS_VERIFY_UserPIN = (byte) 0x78;
-        final static short SW_BAD_PIN = (short) 0x6900;
-        final static byte INS_SET_UserPIN =(byte)0x79;
+	final static byte INS_VERIFY_MASTER_PIN        = (byte)0x77;
+    final static byte INS_VERIFY_USER_PIN          = (byte)0x78;
+    final static short SW_BAD_PIN                  = (short)0x9900;
+    final static byte INS_SET_USER_PIN             = (byte)0x79;
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
@@ -44,16 +44,16 @@ public class KeepassNFC extends Applet {
 
 	private byte[] scratch_area = null;    // space to store the keys or data at different times during encryption/decryption
 	private byte[] aes_key_temporary = null;
-        private static final byte Master_PIN_MIN_LENGTH = 6;  // minimum length of Master PIN
-	private static final byte Master_PIN_MAX_LENGTH = 127; // maximum length of Master PIN
-        private static final byte User_PIN_MIN_LENGTH = 4;     // Minimum length of User PIN
-	private static final byte User_PIN_MAX_LENGTH = 127;   // Maximum Length of User PIN
-        private byte Master_PIN_length ; 
-        private byte User_PIN_length;
-        private OwnerPIN Master_PIN =null;
-        private OwnerPIN User_PIN=null;
-        private static byte[] Master_PIN_DEFAULT = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36 }; //default Master_PIN
-        private static byte[] User_PIN_DEFAULT = { 0x31, 0x32, 0x33, 0x34 }; //default User_PIN
+
+	private static final byte MASTER_PIN_MIN_LENGTH = 6;   // minimum length of Master PIN
+	private static final byte MASTER_PIN_MAX_LENGTH = 127; // maximum length of Master PIN
+	private static final byte USER_PIN_MIN_LENGTH = 4;     // Minimum length of User PIN
+	private static final byte USER_PIN_MAX_LENGTH = 127;   // Maximum Length of User PIN
+	private OwnerPIN masterPIN = null;
+	private OwnerPIN userPIN = null;
+	private static byte[] MASTER_PIN_DEFAULT = {0x31, 0x32, 0x33, 0x34, 0x35, 0x36}; //default masterPIN
+	private static byte[] USER_PIN_DEFAULT = {0x31, 0x32, 0x33, 0x34};               //default userPIN
+
 	//method to generate the three keys
 	protected KeepassNFC(byte[] bArray, short bOffset, byte bLength)
 	{
@@ -71,6 +71,7 @@ public class KeepassNFC extends Applet {
 		scratch_area = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
 		aes_key_temporary = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
 
+		initializePINs();
 		cleanAllSensitiveData();
 		register();
 	}
@@ -80,17 +81,17 @@ public class KeepassNFC extends Applet {
 	{
 		new KeepassNFC(bArray, bOffset, bLength);
 	}
-        
-        private void initialize() {
-		// Initialize Master_PIN with default password
-		Master_PIN= new OwnerPIN((byte) 3,Master_PIN_MAX_LENGTH );
-		Master_PIN.update(Master_PIN_DEFAULT, (short)0, (byte) Master_PIN_DEFAULT.length);
-		Master_PIN_length = (byte) Master_PIN_DEFAULT.length;
-                User_PIN= new OwnerPIN((byte) 3,User_PIN_MAX_LENGTH );
-		User_PIN.update(User_PIN_DEFAULT, (short)0, (byte) User_PIN_DEFAULT.length);
-		Master_PIN_length = (byte) Master_PIN_DEFAULT.length;
-		
-        }
+
+	private void initializePINs()
+	{
+		// Initialize masterPIN with default password
+		masterPIN = new OwnerPIN((byte)3, MASTER_PIN_MAX_LENGTH);
+		masterPIN.update(MASTER_PIN_DEFAULT, (short)0, (byte)MASTER_PIN_DEFAULT.length);
+		// Initialize userPIN with default password
+		userPIN = new OwnerPIN((byte)3, USER_PIN_MAX_LENGTH);
+		userPIN.update(USER_PIN_DEFAULT, (short)0, (byte)USER_PIN_DEFAULT.length);
+	}
+
         // method to clear all transient data
 	private void cleanTransientSensitiveData() {
 		transaction_key.clearKey();
@@ -130,15 +131,15 @@ public class KeepassNFC extends Applet {
 
 		if (buffer[ISO7816.OFFSET_CLA] == CLA_CARD_KPNFC_CMD) {   // checking CLA field of header
 			switch (buffer[ISO7816.OFFSET_INS]) {
-                                case INS_VERIFY_MasterPIN:  //For verification of Master PIN
-                                    VerifyMasterPIN(apdu);
-                                    break;
-                                case INS_VERIFY_UserPIN:   // For Verification of User PIN
-                                    VerifyUserPIN(apdu);
-                                    break;
-                                case INS_SET_UserPIN:      // For Setting of New User PIN
-                                    SetUserPIN(apdu);
-                                    break;
+				case INS_VERIFY_MASTER_PIN:  //For verification of Master PIN
+					VerifyMasterPIN(apdu);
+					break;
+				case INS_VERIFY_USER_PIN:    // For Verification of User PIN
+					VerifyUserPIN(apdu);
+					break;
+				case INS_SET_USER_PIN:        // For Setting of New User PIN
+					SetUserPIN(apdu);
+					break;
 				case INS_CARD_GET_CARD_PUBKEY:    // Getting the card public key
 					getCardPubKey(apdu);
 					break;
@@ -179,83 +180,85 @@ public class KeepassNFC extends Applet {
 	private static final short PUBKEY_RESPONSE_REMAIN_IDX = (short)(ISO7816.OFFSET_CDATA + 3);
 	private static final short PUBKEY_RESPONSE_EXPONENT_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_EXPONENT_OFFSET);
 	private static final short PUBKEY_RESPONSE_MODULUS_IDX = (short)(ISO7816.OFFSET_CDATA + PUBKEY_RESPONSE_MODULUS_OFFSET);
- 
-         /* Method to verify Master PIN 
-           *response APDU (in case of correct User PIN):
-	     * * 1 byte: RESPONSE_SUCCEEDED
-	   * response APDU (in case of incorrect User PIN):
-             * * 1 byte: RESPONSE_FAILED
-           * response APDU (in case of wrong input data):
-            * * SW: SW_BAD_PIN (0x6900) 
-        */ 
-        protected void VerifyMasterPIN(APDU apdu) {
-        byte[] buffer = apdu.getBuffer();
-        short dataLen = apdu.setIncomingAndReceive();
-        if (Master_PIN.check(buffer, ISO7816.OFFSET_CDATA, (byte) dataLen) == false) {
-            ISOException.throwIt(SW_BAD_PIN);
-            buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-	    apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-        }
-        else 
-        {  
-            buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-          apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-               
-        }
-        
-    }  
-        
-        /* Method to verify User PIN 
-           *response APDU (in case of correct User PIN):
-	     * * 1 byte: RESPONSE_SUCCEEDED
-	   * response APDU (in case of incorrect User PIN):
-             * * 1 byte: RESPONSE_FAILED
-           * response APDU (in case of wrong input data):
-            * * SW: SW_BAD_PIN (0x6900) 
-        */ 
-        protected void VerifyUserPIN(APDU apdu) 
-        {
-        byte[] buffer = apdu.getBuffer();
-        short dataLen = apdu.setIncomingAndReceive();
-        if (User_PIN.check(buffer, ISO7816.OFFSET_CDATA, (byte) dataLen) == false) {
-            ISOException.throwIt(SW_BAD_PIN);
-            buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-	    apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-        }
-        else 
-        { 
-        buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-	apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-               
-        }
-        
-      }
-        
-      /* Method to Set new User PIN 
-        * response APDU (in case of succesfull setting of User PIN):
-	 * * 1 byte: RESPONSE_SUCCEEDED
-        * response APDU (in case of not matching of Master_PIN):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED
-        * response APDU (in case of wrong input data):
-	 * * SW: SW_WRONG_LENGTH (0x6700) or SW_WRONG_DATA(0x6A80)
-        */ 
-      protected void SetUserPIN(APDU apdu) {
-      byte[]    buffer = apdu.getBuffer();
-      short     dataLen = apdu.setIncomingAndReceive();
 
-      if (dataLen != 4) {
-            ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
-      }
-       
-      // Check if  Master PIN is validated
-        if (!Master_PIN.isValidated()) 
-        {
+	/**
+	 * Method to verify Master PIN
+	 * response APDU (in case of correct Master PIN):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * response APDU (in case of incorrect Master PIN):
+	 * * SW: SW_BAD_PIN (0x99nn), with nn=number of tries remaining
+	 *
+	 * @param apdu Request APDU containing the plaintext Master PIN.
+	 */
+	protected void VerifyMasterPIN(APDU apdu)
+	{
+		byte[] buffer = apdu.getBuffer();
+		short dataLen = apdu.setIncomingAndReceive();
+		if (masterPIN.check(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen)) {
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		} else {
+			ISOException.throwIt((short)(SW_BAD_PIN | masterPIN.getTriesRemaining()));
+		}
+
+	}
+
+	/**
+	 * Method to verify User PIN
+	 * response APDU (in case of correct User PIN):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * response APDU (in case of incorrect User PIN):
+	 * * SW: SW_BAD_PIN (0x99nn), with nn=number of tries remaining
+	 *
+	 * @param apdu Request APDU containing the plaintext User PIN.
+	 */
+	protected void VerifyUserPIN(APDU apdu)
+	{
+		byte[] buffer = apdu.getBuffer();
+		short dataLen = apdu.setIncomingAndReceive();
+		if (userPIN.check(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen)) {
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+			apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+		} else {
+			ISOException.throwIt((short)(SW_BAD_PIN | userPIN.getTriesRemaining()));
+		}
+	}
+
+	/**
+	 * Method to Set new User PIN
+	 * response APDU (in case of successful setting of User PIN):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * response APDU (in case of Master PIN not validated):
+	 * * SW: SW_CONDITIONS_NOT_SATISFIED
+	 * response APDU (in case of new User PIN with wrong length):
+	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 *
+	 * @param apdu Request APDU containing the plaintext User PIN.
+	 */
+	protected void SetUserPIN(APDU apdu)
+	{
+		byte[] buffer = apdu.getBuffer();
+		short dataLen = apdu.setIncomingAndReceive();
+
+		// Check if Master PIN is validated
+		if (!masterPIN.isValidated()) {
 			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
-        }
-            User_PIN.update(buffer, ISO7816.OFFSET_CDATA, (byte) dataLen);
-            buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-	    apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
-      }
+		}
+		// Double check for Fault Induction prevention
+		if (!masterPIN.isValidated()) {
+			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+		}
+
+		// check length of new User PIN
+		if (dataLen < USER_PIN_MIN_LENGTH || dataLen > USER_PIN_MAX_LENGTH) {
+			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+		}
+
+		userPIN.update(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen);
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+		apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)1);
+	}
+
 	/**
 	 * Method to send Public Key (exponent & modulus) to the user application.
 	 * <p>
