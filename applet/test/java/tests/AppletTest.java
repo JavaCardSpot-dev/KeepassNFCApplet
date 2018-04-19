@@ -75,13 +75,6 @@ public class AppletTest {
 		byte version = client.getVersion();
 		Assert.assertEquals((byte)2, version);
 	}
-	
-	@Test(dependsOnGroups = {"Installing"})
-	public void getRepo() throws Exception
-	{
-		byte repo = client.getRepo();
-		Assert.assertEquals((byte)53, repo);
-	}
 
 	@Test(dependsOnGroups = {"Installing"})
 	public void getLockReason() throws Exception

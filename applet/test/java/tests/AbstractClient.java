@@ -43,7 +43,6 @@ abstract public class AbstractClient {
 	public final static byte INS_CARD_GET_LOCK_REASON = (byte)0x72;
 	public final static byte INS_CARD_DECRYPT_BLOCK = (byte)0x73;
 	public final static byte INS_CARD_GET_VERSION = (byte)0x74;
-	final static byte INS_GET_REPO   = (byte)0x77;   // instruction to get Repository info
 	public final static byte INS_CARD_GENERATE_CARD_KEY = (byte)0x75;
 	public final static byte INS_CARD_WRITE_TO_SCRATCH = (byte)0x76;
 	public final static byte INS_VERIFY_MASTER_PIN = (byte)0x80;
@@ -104,10 +103,6 @@ abstract public class AbstractClient {
 				case "version":
 					getVersion();
 					break;
-				case "repo":
-					getRepo();
-					break;	
-					
 				default:
 					System.err.println("Unknown command '" + cmd + "'");
 					break;
@@ -400,27 +395,6 @@ abstract public class AbstractClient {
 		if (response != null && response.length == 2 && response[0] == RESPONSE_SUCCEEDED) {
 			System.out.println("Applet version " + response[1]);
 			return response[1];
-		}
-		throw new CardException("Unknown error");
-	}
-	
-	public byte[] prepareRepoAPDU()
-	{
-		return constructApdu(CLA_CARD_KPNFC_ALL, INS_GET_REPO);
-	}
-
-	public byte getRepo() throws CardException
-	{
-		return getRepo(prepareRepoAPDU());
-	}
-
-	public byte getRepo(byte[] command) throws CardException
-	{
-		byte[] response = sendAPDU(command).getData();
-
-		if (response != null && response.length == 53 && response[0] == RESPONSE_SUCCEEDED) {
-			System.out.println("Applet Repo " + response);
-			return response;
 		}
 		throw new CardException("Unknown error");
 	}
