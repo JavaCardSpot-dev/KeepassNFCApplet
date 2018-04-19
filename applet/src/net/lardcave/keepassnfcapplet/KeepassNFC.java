@@ -77,7 +77,7 @@ public class KeepassNFC extends Applet {
 		password_cipher = Cipher.getInstance(Cipher.ALG_AES_BLOCK_128_CBC_NOPAD, false);
 		transaction_cipher = Cipher.getInstance(Cipher.ALG_AES_BLOCK_128_CBC_NOPAD, false);
 
-		scratch_area = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
+		scratch_area = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);	//using volatile memory for user write  
 		aes_key_temporary = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
 
 		// Initialize masterPIN with default password
@@ -210,7 +210,7 @@ public class KeepassNFC extends Applet {
 				ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
 		}
 	}
-
+	
 	private static final short PUBKEY_MAX_SEND_LENGTH = 120;
 	private static final byte PUBKEY_GET_EXPONENT = 1;
 	private static final byte PUBKEY_GET_MODULUS = 2;
@@ -593,7 +593,8 @@ public class KeepassNFC extends Applet {
 		} finally {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
-			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
+		//Duplicate statement
+		     //Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		}
 
 		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)(encrypted + 1));
@@ -676,7 +677,8 @@ public class KeepassNFC extends Applet {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 			Util.setShort(buffer, (short)(RESPONSE_STATUS_OFFSET + 1), RSA_KEYLENGTH);
 			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)3);
-		} else {
+		} 
+		else {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.INVALID_INIT));
@@ -748,14 +750,16 @@ public class KeepassNFC extends Applet {
 		} catch (CryptoException e) {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		//Duplicate statement
+		     //Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 			output.clearKey();
 			decryptedBytes = 0;
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
 		} finally {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+		//Duplicate statement
+		     //Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		}
 		return decryptedBytes;
 	}
