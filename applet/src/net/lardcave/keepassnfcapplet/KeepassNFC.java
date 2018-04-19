@@ -10,8 +10,8 @@ import javacardx.crypto.Cipher;
 
 public class KeepassNFC extends Applet {
 	final static byte CLA_CARD_KPNFC_CMD           = (byte)0xB0;   // class identification of the normal-operation instructions (pin-accessible)
-	final static byte CLA_CARD_KPNFC_PIN           = (byte)0xC0;   // class identification of the pin-related instructions
-	final static byte CLA_CARD_KPNFC_ALL           = (byte)0xD0;   // class identification of the instructions always available
+	final static byte CLA_CARD_KPNFC_PIN           = (byte)0xA0;   // class identification of the pin-related instructions
+	final static byte CLA_CARD_KPNFC_ALL           = (byte)0x90;   // class identification of the instructions always available
 
 	final static byte INS_CARD_GET_CARD_PUBKEY     = (byte)0x70;   // Instruction to get card public key
 	final static byte INS_CARD_SET_PASSWORD_KEY    = (byte)0x71;   // Instruction to set password key

@@ -33,8 +33,8 @@ abstract public class AbstractClient {
 	private SecureRandom random;
 
 	public final static byte CLA_CARD_KPNFC_CMD = (byte)0xB0;
-	public final static byte CLA_CARD_KPNFC_PIN = (byte)0xC0;
-	public final static byte CLA_CARD_KPNFC_ALL = (byte)0xD0;
+	public final static byte CLA_CARD_KPNFC_PIN = (byte)0xA0;
+	public final static byte CLA_CARD_KPNFC_ALL = (byte)0x90;
 
 	public final static byte INS_CARD_GET_CARD_PUBKEY = (byte)0x70;
 	public final static byte INS_CARD_SET_PASSWORD_KEY = (byte)0x71;
