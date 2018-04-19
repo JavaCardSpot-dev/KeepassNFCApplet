@@ -91,8 +91,9 @@ public class KeepassNFC extends Applet {
 		new KeepassNFC(bArray, bOffset, bLength);
 	}
 
-        // method to clear all transient data
-	private void cleanTransientSensitiveData() {
+	// method to clear all transient data
+	private void cleanTransientSensitiveData()
+	{
 		transaction_key.clearKey();
 		// card_cipher
 		// password_cipher
@@ -102,8 +103,10 @@ public class KeepassNFC extends Applet {
 		userPIN.reset();
 		masterPIN.reset();
 	}
-        // Method to clear all sensitive data
-	private void cleanAllSensitiveData() {
+
+	// Method to clear all sensitive data
+	private void cleanAllSensitiveData()
+	{
 		password_key.clearKey();
 		card_key.getPrivate().clearKey();
 		cleanTransientSensitiveData();
@@ -584,7 +587,7 @@ public class KeepassNFC extends Applet {
 
 	/**
 	 * Method to get the current applet version.
-	 *
+	 * <p>
 	 * response APDU (in case of correct generation):
 	 * * 1 byte: RESPONSE_SUCCEEDED
 	 * * 1 byte: VERSION

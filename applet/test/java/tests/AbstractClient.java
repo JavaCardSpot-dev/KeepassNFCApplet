@@ -56,7 +56,8 @@ abstract public class AbstractClient {
 	public static final byte OFFSET_DATA = 0x05;
 	public static final byte HEADER_LENGTH = 0x05;
 
-	AbstractClient() {
+	AbstractClient()
+	{
 		random = new SecureRandom();
 	}
 
@@ -144,7 +145,7 @@ abstract public class AbstractClient {
 
 		List<byte[]> modulusPortions = new ArrayList<>();
 		args[0] = 2; // get modulus
-		short offset = 0, bytesToGo = 0;
+		short offset = 0, bytesToGo;
 		do {
 			putShort(args, 1, offset);
 			command = constructApdu(INS_CARD_GET_CARD_PUBKEY, args);
@@ -226,7 +227,7 @@ abstract public class AbstractClient {
 
 		byte[] command = constructApdu(INS_CARD_SET_PASSWORD_KEY);
 		ResponseAPDU response = sendAPDU(channel, command);
-		if  (response.getData()[0] == RESPONSE_SUCCEEDED) {
+		if (response.getData()[0] == RESPONSE_SUCCEEDED) {
 			System.out.println("Password key set to " + toHex(passwordKey));
 		}
 		return response.getData()[0] == RESPONSE_SUCCEEDED;
@@ -249,14 +250,16 @@ abstract public class AbstractClient {
 		return setNewPasswordKey(passwordKey);
 	}
 
-	public void setPasswordKeyIv(byte[] passwordKeyIv) {
+	public void setPasswordKeyIv(byte[] passwordKeyIv)
+	{
 		if (passwordKeyIv.length != 16)
 			throw new InvalidParameterException("Password Key IV must be 16 bytes long.");
 		this.passwordKeyIv = new byte[16];
 		System.arraycopy(passwordKeyIv, 0, this.passwordKeyIv, 0, passwordKeyIv.length);
 	}
 
-	public void setPasswordKeyIv() {
+	public void setPasswordKeyIv()
+	{
 		setPasswordKeyIv(randomBytes(16));
 	}
 
