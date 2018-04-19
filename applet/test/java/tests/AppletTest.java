@@ -36,7 +36,7 @@ public class AppletTest {
 		client = new CardToolsClient(KeepassNFC.class, "F0375472804FD5FA0F243E42C1B63825");
 		client.setThrowOnCommandException(true);
 		client.setCardType(JCARDSIM);
-		//client.setCardType(PHYSICAL);
+		// client.setCardType(PHYSICAL);
 	}
 
 	@AfterGroups(groups = {"Installing"})
@@ -166,7 +166,8 @@ public class AppletTest {
 		Assert.assertEquals(true, passwordSet);
 	}
 
-	public void assertUnverifiedUserPIN(byte[] command) {
+	public void assertUnverifiedUserPIN(byte[] command)
+	{
 		try {
 			int response = client.sendAPDU(command).getSW();
 			Assert.assertEquals(0x98FF, response | 0xFF);
@@ -177,7 +178,8 @@ public class AppletTest {
 		}
 	}
 
-	public int assertGeneralCryptoError(byte[] command, String msg) {
+	public int assertGeneralCryptoError(byte[] command, String msg)
+	{
 		int response;
 		msg = msg != null ? msg : "Expecting a failure with SW=0xF1.. (CryptoException)";
 		try {
@@ -192,7 +194,8 @@ public class AppletTest {
 		return response;
 	}
 
-	public int assertGeneralCryptoError(byte[] command) {
+	public int assertGeneralCryptoError(byte[] command)
+	{
 		return assertGeneralCryptoError(command, null);
 	}
 
@@ -350,7 +353,8 @@ public class AppletTest {
 		}
 	}
 
-	public void assertIncorrectLength(byte[] apdu, String msg) {
+	public void assertIncorrectLength(byte[] apdu, String msg)
+	{
 		try {
 			Assert.assertEquals(0x6700, client.sendAPDU(apdu).getSW());
 			if (client.isThrowOnCommandException())
@@ -546,6 +550,7 @@ public class AppletTest {
 			Assert.assertTrue(e.getMessage().startsWith("6700"));
 		}
 	}
+
 	@Test(groups = {"PIN"}, dependsOnMethods = {"verifyMasterPIN"})
 	public void setMasterPIN() throws Exception
 	{
