@@ -89,6 +89,28 @@ public class AppletTest {
 		Assert.assertTrue(key.getPublicExponent().isProbablePrime(10));
 	}
 
+	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Failing"})
+	public void unverifiedGenerateNewCardKey() throws Exception
+	{
+		try {
+			short keyLength = client.generateCardKey();
+			Assert.assertEquals(-1, keyLength);
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6985"));
+		}
+	}
+
+	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Failing"})
+	public void unverifiedGetCardKey() throws Exception
+	{
+		try {
+			RSAPublicKey key = client.getCardPubKey(client.getCardChannel());
+			Assert.assertNull(key);
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6985"));
+		}
+	}
+
 	@Test(dependsOnGroups = {"Configuring", "PIN"})
 	public void setPasswordKey() throws Exception
 	{
@@ -115,6 +137,18 @@ public class AppletTest {
 		client.generateCardKey();
 		boolean passwordSet = client.setNewPasswordKey();
 		Assert.assertEquals(true, passwordSet);
+	}
+
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
+	public void unverifiedSetPasswordKey() throws Exception
+	{
+		byte[] command = client.constructApdu(client.INS_CARD_SET_PASSWORD_KEY);
+		try {
+			int response = client.sendAPDU(client.getCardChannel(), command).getSW();
+			Assert.assertEquals(0x6985, response);
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6985"));
+		}
 	}
 
 	@Test(dependsOnGroups = {"Configuring", "PIN"})
@@ -164,6 +198,30 @@ public class AppletTest {
 		System.out.println("Prior: " + Util.toHex(data));
 		System.out.println("After: " + Util.toHex(decryptedData));
 		Assert.assertTrue(Arrays.equals(data, decryptedData));
+	}
+
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
+	public void unverifiedPrepareDecryption() throws Exception
+	{
+		byte[] command = client.constructApdu(client.INS_CARD_PREPARE_DECRYPTION);
+		try {
+			int response = client.sendAPDU(client.getCardChannel(), command).getSW();
+			Assert.assertEquals(0x6985, response);
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6985"));
+		}
+	}
+
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
+	public void unverifiedDecryptBlock() throws Exception
+	{
+		byte[] command = client.constructApdu(client.INS_CARD_DECRYPT_BLOCK);
+		try {
+			int response = client.sendAPDU(client.getCardChannel(), command).getSW();
+			Assert.assertEquals(0x6985, response);
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6985"));
+		}
 	}
 
 	@Test(dependsOnGroups = {"Configuring", "PIN"})
@@ -355,8 +413,8 @@ public class AppletTest {
 		}
 	}
 
-	@Test(groups = {"PIN", "Failing"})
-	public void setUserPINwithoutVerification() throws Exception
+	@Test(groups = {"PIN", "Failing"}, dependsOnMethods = {"verifyUserPIN"})
+	public void unverifiedSetUserPIN() throws Exception
 	{
 		// test failure of setting of user PIN
 		String errMsg = "SetUserPIN should throw error if master PIN isn't verified.";
