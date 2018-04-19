@@ -19,25 +19,25 @@ public class KeepassNFC extends Applet {
 	final static byte INS_CARD_GET_CARD_PUBKEY     = (byte)0x70;   // Instruction to get card public key
 	final static byte INS_CARD_SET_PASSWORD_KEY    = (byte)0x71;   // Instruction to set password key
 	final static byte INS_CARD_PREPARE_DECRYPTION  = (byte)0x72;   // Instruction for PKI safe share the AES decryption
-	final static byte INS_CARD_DECRYPT_BLOCK       = (byte)0x73;
-	final static byte INS_CARD_GENERATE_CARD_KEY   = (byte)0x75;
-	final static byte INS_CARD_WRITE_TO_SCRATCH    = (byte)0x76;
+	final static byte INS_CARD_DECRYPT_BLOCK       = (byte)0x73;   // Instruction to Decrypt block
+	final static byte INS_CARD_GENERATE_CARD_KEY   = (byte)0x75;   // Instruction to generate card key
+	final static byte INS_CARD_WRITE_TO_SCRATCH    = (byte)0x76;   // Instruction to Write to scratch
 
-	final static byte INS_VERIFY_MASTER_PIN        = (byte)0x80;
-	final static byte INS_SET_MASTER_PIN           = (byte)0x81;
-	final static byte INS_VERIFY_USER_PIN          = (byte)0x82;
-	final static byte INS_SET_USER_PIN             = (byte)0x83;
+	final static byte INS_VERIFY_MASTER_PIN        = (byte)0x80;   // Instruction to verify Master PIN
+	final static byte INS_SET_MASTER_PIN           = (byte)0x81;   // Instruction to Set Master PIN
+	final static byte INS_VERIFY_USER_PIN          = (byte)0x82;   // Instruction to verify user PIN
+	final static byte INS_SET_USER_PIN             = (byte)0x83;   // Instruction to Set User PIN
 
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
 
-	final static byte VERSION                      = (byte)0x2;
+	final static byte VERSION                      = (byte)0x2;   // version for Applet
 
-	final static short SW_UNCHECKED_MASTER_PIN     = (short)0x9700;
-	final static short SW_UNCHECKED_USER_PIN       = (short)0x9800;
-	final static short SW_BAD_PIN                  = (short)0x9900;
-	final static short SW_CRYPTO_EXCEPTION         = (short)0xF100;
+	final static short SW_UNCHECKED_MASTER_PIN     = (short)0x9700;  // SW for unchecked Master PIN
+	final static short SW_UNCHECKED_USER_PIN       = (short)0x9800;  // SW for unchecked User PIN
+	final static short SW_BAD_PIN                  = (short)0x9900;  // SW for bad PIN
+	final static short SW_CRYPTO_EXCEPTION         = (short)0xF100;  // SW for Crypto Exception
 
 	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;    // genrtaion of key pair using RSA algorithm
 	final static short RSA_KEYLENGTH               = KeyBuilder.LENGTH_RSA_2048;   // RSA key length 2048
@@ -101,9 +101,6 @@ public class KeepassNFC extends Applet {
 	private void cleanTransientSensitiveData()
 	{
 		transaction_key.clearKey();
-		// card_cipher
-		// password_cipher
-		// transaction_cipher
 		Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		userPIN.reset();
@@ -601,7 +598,6 @@ public class KeepassNFC extends Applet {
 	{
 		byte[] buffer = apdu.getBuffer();
 		apdu.setIncomingAndReceive();
-
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 		buffer[RESPONSE_STATUS_OFFSET + 1] = VERSION;
 		// sending the version of Applet
@@ -622,7 +618,6 @@ public class KeepassNFC extends Applet {
 	{
 		byte[] buffer = apdu.getBuffer();
 		apdu.setIncomingAndReceive();
-
 		buffer[RESPONSE_STATUS_OFFSET] = masterPIN.getTriesRemaining();
 		buffer[RESPONSE_STATUS_OFFSET + 1] = userPIN.getTriesRemaining();
 		// sending the version of Applet
@@ -693,7 +688,6 @@ public class KeepassNFC extends Applet {
 	{
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
-
 		short offset = Util.getShort(buffer, ISO7816.OFFSET_CDATA);
 		// check the data length fits into the scratch area, prevent fault induction
 		if ((short)scratch_area.length >= (short)(offset + length - 2)) {
