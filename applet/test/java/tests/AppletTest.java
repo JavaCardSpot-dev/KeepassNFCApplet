@@ -290,39 +290,87 @@ public class AppletTest {
 		} catch (CardException ignored) {
 		}
 	}
-        @Test(groups = {"Failing"})
-	public void incorrectMaster_PIN() throws Exception
+
+	@Test(groups = {"PIN", "Failing"})
+	public void incorrectMasterPIN() throws Exception
 	{
-		// tests incorrect MasterPIN
+		// tests incorrect Master PIN
+		String errMsg = "VerifyMasterPIN should throw error if Master PIN doesn't match.";
 		try {
-			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_VERIFY_MasterPIN, new byte[]{0x36, 0x32,0x33,0x34,0x35,0x36});
-			client.sendAPDU(apdu);
-			Assert.fail("VerifyMasterPIN should throw error if Master PIN doesn't match.");
-		} catch (CardException ignored) {
+			Assert.assertFalse(errMsg, client.verifyMasterPIN(null));
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("99"));
 		}
-		
+		try {
+			Assert.assertFalse(errMsg, client.verifyMasterPIN(new byte[]{0x36, 0x32, 0x33, 0x34, 0x35, 0x36}));
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("99"));
+		}
+		try {
+			Assert.assertFalse(errMsg, client.verifyMasterPIN(new byte[]{0x36, 0x32, 0x33, 0x34, 0x35, 0x36, 0x36, 0x32, 0x33, 0x34, 0x35, 0x36}));
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("99"));
+		}
 	}
-         @Test(groups = {"Failing"})
-	public void incorrectUser_PIN() throws Exception
+
+	@Test(groups = {"PIN", "Failing"})
+	public void incorrectUserPIN() throws Exception
 	{
-		// tests incorrect MasterPIN
+		// tests incorrect User PIN
+		String errMsg = "VerifyUserPIN should throw error if User PIN doesn't match.";
 		try {
-			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_VERIFY_UserPIN, new byte[]{0x36, 0x32,0x33,0x34});
-			client.sendAPDU(apdu);
-			Assert.fail("VerifyUserPIN should throw error if Master PIN doesn't match.");
-		} catch (CardException ignored) {
+			Assert.assertFalse(errMsg, client.verifyUserPIN(null));
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("99"));
 		}
-		
+		try {
+			Assert.assertFalse(errMsg, client.verifyUserPIN(new byte[]{0x36, 0x32, 0x33, 0x34, 0x35, 0x36}));
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("99"));
+		}
+		try {
+			Assert.assertFalse(errMsg, client.verifyUserPIN(new byte[]{0x36, 0x32, 0x33, 0x34, 0x35, 0x36, 0x36, 0x32, 0x33, 0x34, 0x35, 0x36}));
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("99"));
+		}
 	}
-        public void SetUser_PIN() throws Exception
+
+	@Test(groups = {"PIN", "Failing"})
+	public void setUserPINwithoutVerification() throws Exception
 	{
 		// test failure of setting of user PIN
+		String errMsg = "SetUserPIN should throw error if master PIN isn't verified.";
 		try {
-			byte[] apdu = AbstractClient.constructApdu(AbstractClient.INS_SET_UserPIN, new byte[]{0x34, 0x37,0x39,0x36});
-			client.sendAPDU(apdu);
-			Assert.fail("SetUserPIN should throw error if user PIN doesn't set.");
-		} catch (CardException ignored) {
+			Assert.assertFalse(errMsg, client.setUserPIN(new byte[]{0x34, 0x37, 0x39, 0x36}));
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("6985"));
 		}
-		
+	}
+
+	@Test(groups = {"PIN"})
+	public void verifyMasterPIN() throws Exception
+	{
+		// test verifying User PIN
+		Assert.assertTrue("Default Master PIN should be correctly verified.",
+				client.verifyMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
+	}
+
+	@Test(groups = {"PIN"})
+	public void verifyUserPIN() throws Exception
+	{
+		// test verifying User PIN
+		Assert.assertTrue("Default User PIN should be correctly verified.",
+				client.verifyUserPIN(new byte[]{0x31, 0x32, 0x33, 0x34}));
+	}
+
+	@Test(groups = {"PIN"}, dependsOnMethods = {"verifyMasterPIN", "verifyUserPIN"})
+	public void setUserPIN() throws Exception
+	{
+		// test setting of User PIN
+		byte[] newPIN = new byte[]{0x34, 0x37, 0x39, 0x36};
+		Assert.assertTrue("SetUserPIN should work after Master PIN verification.",
+				client.setUserPIN(newPIN, new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
+		Assert.assertTrue("If new User PIN is set, it should be correctly verified.",
+				client.verifyUserPIN(newPIN));
 	}
 }

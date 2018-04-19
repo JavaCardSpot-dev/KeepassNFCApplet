@@ -41,9 +41,9 @@ abstract public class AbstractClient {
 	public final static byte INS_CARD_GET_VERSION = (byte)0x74;
 	public final static byte INS_CARD_GENERATE_CARD_KEY = (byte)0x75;
 	public final static byte INS_CARD_WRITE_TO_SCRATCH = (byte)0x76;
-        final static byte INS_VERIFY_MasterPIN = (byte) 0x77;
-        final static byte INS_VERIFY_UserPIN = (byte) 0x78;
-        final static byte INS_SET_UserPIN =(byte)0x79;
+	final static byte INS_VERIFY_MASTER_PIN = (byte)0x77;
+	final static byte INS_VERIFY_USER_PIN = (byte)0x78;
+	final static byte INS_SET_USER_PIN = (byte)0x79;
 	public final static byte RESPONSE_SUCCEEDED = (byte)0x1;
 	public final static byte RESPONSE_FAILED = (byte)0x2;
 
@@ -419,17 +419,48 @@ abstract public class AbstractClient {
 
 		return result;
 	}
-       /* public byte[] VerifyMasterPIN() throws CardException
-	{       CardChannel channel = getCardChannel();
-                
-		byte[] command = constructApdu(INS_VERIFY_MasterPIN);
-		ResponseAPDU response = sendAPDU(channel, command);
-		if (response.getSW()== RESPONSE_SUCCEEDED) {
-			System.out.println("Master PIN not Matched");
-			return null;
+
+	public boolean verifyMasterPIN(byte[] masterPIN) throws CardException
+	{
+		byte[] command = constructApdu(INS_VERIFY_MASTER_PIN, masterPIN);
+		byte[] responseData = sendAPDU(command).getData();
+		if (responseData != null && responseData.length == 1 && responseData[0] == RESPONSE_SUCCEEDED) {
+			return true;
 		}
-		throw new CardException("Unknown error");
-	}*/
+		System.err.println("Master PIN not Matched");
+		return false;
+	}
+
+	public boolean verifyUserPIN(byte[] userPIN) throws CardException
+	{
+		byte[] command = constructApdu(INS_VERIFY_USER_PIN, userPIN);
+		byte[] responseData = sendAPDU(command).getData();
+		if (responseData != null && responseData.length == 1 && responseData[0] == RESPONSE_SUCCEEDED) {
+			return true;
+		}
+		System.err.println("User PIN not Matched");
+		return false;
+	}
+
+	// set user PIN after verification of master PIN
+	public boolean setUserPIN(byte[] userPIN, byte[] masterPIN) throws CardException
+	{
+		if (verifyMasterPIN(masterPIN))
+			return setUserPIN(userPIN);
+		return false;
+	}
+
+	// set user PIN directly without prior master PIN verification
+	public boolean setUserPIN(byte[] userPIN) throws CardException
+	{
+		byte[] command = constructApdu(INS_SET_USER_PIN, userPIN);
+		byte[] responseData = sendAPDU(command).getData();
+		if (responseData != null && responseData.length == 1 && responseData[0] == RESPONSE_SUCCEEDED) {
+			return true;
+		}
+		System.err.println("User PIN not set");
+		return false;
+	}
 
 	public static byte[] constructApdu(byte command)
 	{
