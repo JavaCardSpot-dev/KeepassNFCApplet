@@ -73,7 +73,13 @@ public class KeepassNFC extends Applet {
 		scratch_area = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
 		aes_key_temporary = JCSystem.makeTransientByteArray((short)260, JCSystem.CLEAR_ON_DESELECT);
 
-		initializePINs();
+		// Initialize masterPIN with default password
+		masterPIN = new OwnerPIN((byte)3, MASTER_PIN_MAX_LENGTH);
+		masterPIN.update(MASTER_PIN_DEFAULT, (short)0, (byte)MASTER_PIN_DEFAULT.length);
+		// Initialize userPIN with default password
+		userPIN = new OwnerPIN((byte)3, USER_PIN_MAX_LENGTH);
+		userPIN.update(USER_PIN_DEFAULT, (short)0, (byte)USER_PIN_DEFAULT.length);
+
 		cleanAllSensitiveData();
 		register();
 	}
@@ -82,16 +88,6 @@ public class KeepassNFC extends Applet {
 	public static void install(byte[] bArray, short bOffset, byte bLength) throws ISOException
 	{
 		new KeepassNFC(bArray, bOffset, bLength);
-	}
-
-	private void initializePINs()
-	{
-		// Initialize masterPIN with default password
-		masterPIN = new OwnerPIN((byte)3, MASTER_PIN_MAX_LENGTH);
-		masterPIN.update(MASTER_PIN_DEFAULT, (short)0, (byte)MASTER_PIN_DEFAULT.length);
-		// Initialize userPIN with default password
-		userPIN = new OwnerPIN((byte)3, USER_PIN_MAX_LENGTH);
-		userPIN.update(USER_PIN_DEFAULT, (short)0, (byte)USER_PIN_DEFAULT.length);
 	}
 
         // method to clear all transient data
