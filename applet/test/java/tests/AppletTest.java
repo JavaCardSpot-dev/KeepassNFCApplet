@@ -81,7 +81,7 @@ public class AppletTest {
 	{
 		verifyUserPIN();
 		short keyLength = client.generateCardKey();
-		Assert.assertEquals((2048 + 64)/8, keyLength);
+		Assert.assertEquals(2048, keyLength);
 		RSAPublicKey key = client.getCardPubKey(client.getCardChannel());
 		Assert.assertEquals("RSA", key.getAlgorithm());
 		Assert.assertEquals("X.509", key.getFormat());

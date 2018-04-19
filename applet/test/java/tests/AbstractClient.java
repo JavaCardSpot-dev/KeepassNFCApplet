@@ -106,8 +106,10 @@ abstract public class AbstractClient {
 	{
 		byte[] command = constructApdu(INS_CARD_GENERATE_CARD_KEY);
 
-		byte[] keyLength = sendSingleCommand(command);
-		return getShort(keyLength, 0);
+		ResponseAPDU keyLength = sendAPDU(command);
+		if (keyLength.getData().length == 3 && keyLength.getData()[0] == RESPONSE_SUCCEEDED)
+			return getShort(keyLength.getData(), 1); // [RESPONSE_SUCCEEDED, keyLength2Bytes]
+		return -1;
 	}
 
 	protected short getShort(byte[] buffer, int idx)
