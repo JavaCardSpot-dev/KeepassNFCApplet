@@ -75,9 +75,10 @@ public class AppletTest {
 		Assert.assertEquals((byte)2, version);
 	}
 
-	@Test(dependsOnGroups = {"Installing"})
+	@Test(dependsOnGroups = {"Installing", "PIN"})
 	public void getVersion2() throws Exception
 	{
+		verifyUserPIN();
 		byte[] cmd = client.prepareVersionAPDU();
 		cmd[client.OFFSET_CLA] = client.CLA_CARD_KPNFC_CMD;
 		byte version = client.getVersion(cmd);
@@ -152,8 +153,20 @@ public class AppletTest {
 	{
 		byte[] command = client.constructApdu(client.INS_CARD_SET_PASSWORD_KEY);
 		try {
-			int response = client.sendAPDU(client.getCardChannel(), command).getSW();
-			Assert.assertEquals(0x6985, response);
+			int response = client.sendAPDU(command).getSW();
+			Assert.assertEquals(0x98FF, response | 0xFF);
+		} catch (CardException e) {
+			Assert.assertTrue(e.getMessage().startsWith("98"));
+		}
+	}
+
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"Failing"})
+	public void unverifiedClassCMD() throws Exception
+	{
+		byte[] command = client.constructApdu(client.CLA_CARD_KPNFC_CMD, (byte)0x00);
+		try {
+			int response = client.sendAPDU(command).getSW();
+			Assert.assertEquals(0x98FF, response | 0xFF);
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("98"));
 		}
@@ -213,8 +226,8 @@ public class AppletTest {
 	{
 		byte[] command = client.constructApdu(client.INS_CARD_PREPARE_DECRYPTION);
 		try {
-			int response = client.sendAPDU(client.getCardChannel(), command).getSW();
-			Assert.assertEquals(0x6985, response);
+			int response = client.sendAPDU(command).getSW();
+			Assert.assertEquals(0x98FF, response | 0xFF);
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("98"));
 		}
@@ -225,8 +238,8 @@ public class AppletTest {
 	{
 		byte[] command = client.constructApdu(client.INS_CARD_DECRYPT_BLOCK);
 		try {
-			int response = client.sendAPDU(client.getCardChannel(), command).getSW();
-			Assert.assertEquals(0x6985, response);
+			int response = client.sendAPDU(command).getSW();
+			Assert.assertEquals(0x98FF, response | 0xFF);
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("98"));
 		}

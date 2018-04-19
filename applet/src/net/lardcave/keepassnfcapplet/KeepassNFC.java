@@ -168,6 +168,15 @@ public class KeepassNFC extends Applet {
 				}
 				break;
 			case CLA_CARD_KPNFC_CMD:
+				// Check if User PIN is validated
+				if (!userPIN.isValidated()) {
+					ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
+				}
+				// Double check for Fault Induction prevention
+				if (!userPIN.isValidated()) {
+					ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
+				}
+
 				switch (buffer[ISO7816.OFFSET_INS]) {
 					case INS_CARD_GET_CARD_PUBKEY:    // getting the card public key
 						getCardPubKey(apdu);
@@ -357,15 +366,6 @@ public class KeepassNFC extends Applet {
 	 */
 	protected void getCardPubKey(APDU apdu)
 	{
-		// Check if User PIN is validated
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-		// Double check for Fault Induction prevention
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-
 		byte[] buffer = apdu.getBuffer();   // buffer to hold the header
 		short length = apdu.setIncomingAndReceive();
 		if (length != (short)3)
@@ -453,15 +453,6 @@ public class KeepassNFC extends Applet {
 	 */
 	protected void setPasswordKey(APDU apdu)
 	{
-		// Check if User PIN is validated
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-		// Double check for Fault Induction prevention
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 		// check that length of incoming data is 0, with fault induction prevention
@@ -503,15 +494,6 @@ public class KeepassNFC extends Applet {
 	 */
 	protected void prepareDecryption(APDU apdu)
 	{
-		// Check if User PIN is validated
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-		// Double check for Fault Induction prevention
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 		// check that length of incoming data is 32, with fault induction prevention
@@ -551,15 +533,6 @@ public class KeepassNFC extends Applet {
 	 */
 	protected void decryptBlock(APDU apdu)
 	{
-		// Check if User PIN is validated
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-		// Double check for Fault Induction prevention
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
@@ -645,15 +618,6 @@ public class KeepassNFC extends Applet {
 	 */
 	protected void generateCardKey(APDU apdu)
 	{
-		// Check if User PIN is validated
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-		// Double check for Fault Induction prevention
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
@@ -699,15 +663,6 @@ public class KeepassNFC extends Applet {
 	 */
 	protected void writeToScratch(APDU apdu)
 	{
-		// Check if User PIN is validated
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-		// Double check for Fault Induction prevention
-		if (!userPIN.isValidated()) {
-			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
-		}
-
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
