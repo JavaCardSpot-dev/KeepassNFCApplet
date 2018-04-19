@@ -446,6 +446,8 @@ public class KeepassNFC extends Applet {
 	 * * 1 byte: RESPONSE_SUCCEEDED
 	 * response APDU (in case of provided input):
 	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 * response APDU (in case of crypto error):
+	 * * SW: SW_CRYPTO_EXCEPTION (0xF1rr), with rr=reason code from CryptoException
 	 * response APDU (in case of User PIN not verified):
 	 * * SW: SW_UNCHECKED_USER_PIN (0x98nn), with nn=number of tries remaining
 	 *
@@ -705,17 +707,17 @@ public class KeepassNFC extends Applet {
 			// performing the decryption
 			decryptedBytes = card_cipher.doFinal(input, offset, (short)(RSA_KEYLENGTH / 8), aes_key_temporary, (short)0);
 			if (decryptedBytes == (short)0)
-				throw new CryptoException(CryptoException.ILLEGAL_USE);
+				ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.ILLEGAL_USE));
 			output.setKey(aes_key_temporary, (short)0);
 			if (!output.isInitialized())
-				throw new CryptoException(CryptoException.INVALID_INIT);
+				ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | CryptoException.INVALID_INIT));
 		} catch (CryptoException e) {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 			output.clearKey();
 			decryptedBytes = 0;
-			throw e;
+			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
 		} finally {
 			// cleanup sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
