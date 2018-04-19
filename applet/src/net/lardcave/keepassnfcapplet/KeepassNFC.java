@@ -19,15 +19,17 @@ public class KeepassNFC extends Applet {
 	final static byte INS_CARD_GENERATE_CARD_KEY   = (byte)0x75;
 	final static byte INS_CARD_WRITE_TO_SCRATCH    = (byte)0x76;
 	final static byte INS_VERIFY_MASTER_PIN        = (byte)0x77;
-    final static byte INS_VERIFY_USER_PIN          = (byte)0x78;
-    final static short SW_BAD_PIN                  = (short)0x9900;
-    final static byte INS_SET_USER_PIN             = (byte)0x79;
+	final static byte INS_VERIFY_USER_PIN          = (byte)0x78;
+	final static byte INS_SET_USER_PIN             = (byte)0x79;
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
 
 	final static byte VERSION                      = (byte)0x2;
 
+	final static short SW_UNCHECKED_MASTER_PIN     = (short)0x9700;
+	final static short SW_UNCHECKED_USER_PIN       = (short)0x9800;
+	final static short SW_BAD_PIN                  = (short)0x9900;
 	final static short SW_CRYPTO_EXCEPTION         = (short)0xF100;
 
 	final static byte RSA_ALGORITHM                = KeyPair.ALG_RSA_CRT;    // genrtaion of key pair using RSA algorithm
@@ -132,13 +134,13 @@ public class KeepassNFC extends Applet {
 		if (buffer[ISO7816.OFFSET_CLA] == CLA_CARD_KPNFC_CMD) {   // checking CLA field of header
 			switch (buffer[ISO7816.OFFSET_INS]) {
 				case INS_VERIFY_MASTER_PIN:  //For verification of Master PIN
-					VerifyMasterPIN(apdu);
+					verifyMasterPIN(apdu);
 					break;
 				case INS_VERIFY_USER_PIN:    // For Verification of User PIN
-					VerifyUserPIN(apdu);
+					verifyUserPIN(apdu);
 					break;
 				case INS_SET_USER_PIN:        // For Setting of New User PIN
-					SetUserPIN(apdu);
+					setUserPIN(apdu);
 					break;
 				case INS_CARD_GET_CARD_PUBKEY:    // Getting the card public key
 					getCardPubKey(apdu);
@@ -190,7 +192,7 @@ public class KeepassNFC extends Applet {
 	 *
 	 * @param apdu Request APDU containing the plaintext Master PIN.
 	 */
-	protected void VerifyMasterPIN(APDU apdu)
+	protected void verifyMasterPIN(APDU apdu)
 	{
 		byte[] buffer = apdu.getBuffer();
 		short dataLen = apdu.setIncomingAndReceive();
@@ -212,7 +214,7 @@ public class KeepassNFC extends Applet {
 	 *
 	 * @param apdu Request APDU containing the plaintext User PIN.
 	 */
-	protected void VerifyUserPIN(APDU apdu)
+	protected void verifyUserPIN(APDU apdu)
 	{
 		byte[] buffer = apdu.getBuffer();
 		short dataLen = apdu.setIncomingAndReceive();
@@ -229,25 +231,25 @@ public class KeepassNFC extends Applet {
 	 * response APDU (in case of successful setting of User PIN):
 	 * * 1 byte: RESPONSE_SUCCEEDED
 	 * response APDU (in case of Master PIN not validated):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 * * SW: SW_UNCHECKED_MASTER_PIN (0x97nn), with nn=number of tries remaining
 	 * response APDU (in case of new User PIN with wrong length):
 	 * * SW: SW_WRONG_LENGTH (0x6700)
 	 *
 	 * @param apdu Request APDU containing the plaintext User PIN.
 	 */
-	protected void SetUserPIN(APDU apdu)
+	protected void setUserPIN(APDU apdu)
 	{
-		byte[] buffer = apdu.getBuffer();
-		short dataLen = apdu.setIncomingAndReceive();
-
 		// Check if Master PIN is validated
 		if (!masterPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_MASTER_PIN | masterPIN.getTriesRemaining()));
 		}
 		// Double check for Fault Induction prevention
 		if (!masterPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_MASTER_PIN | masterPIN.getTriesRemaining()));
 		}
+
+		byte[] buffer = apdu.getBuffer();
+		short dataLen = apdu.setIncomingAndReceive();
 
 		// check length of new User PIN
 		if (dataLen < USER_PIN_MIN_LENGTH || dataLen > USER_PIN_MAX_LENGTH) {
@@ -276,7 +278,7 @@ public class KeepassNFC extends Applet {
 	 * response APDU (in case of crypto errors):
 	 * * SW: SW_CRYPTO_EXCEPTION (0xF100)
 	 * response APDU (in case of User PIN not verified):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 * * SW: SW_UNCHECKED_USER_PIN (0x98nn), with nn=number of tries remaining
 	 * response APDU (in case of unrecognized request type):
 	 * * 1 byte: RESPONSE_FAILED
 	 *
@@ -288,11 +290,11 @@ public class KeepassNFC extends Applet {
 	{
 		// Check if User PIN is validated
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 		// Double check for Fault Induction prevention
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 
 		byte[] buffer = apdu.getBuffer();   // buffer to hold the header
@@ -378,7 +380,7 @@ public class KeepassNFC extends Applet {
 	 * response APDU (in case of decrypt error):
 	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
 	 * response APDU (in case of User PIN not verified):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 * * SW: SW_UNCHECKED_USER_PIN (0x98nn), with nn=number of tries remaining
 	 *
 	 * @param apdu Request APDU, empty.
 	 */
@@ -386,11 +388,11 @@ public class KeepassNFC extends Applet {
 	{
 		// Check if User PIN is validated
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 		// Double check for Fault Induction prevention
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 
 		byte[] buffer = apdu.getBuffer();
@@ -426,7 +428,7 @@ public class KeepassNFC extends Applet {
 	 * response APDU (in case of crypto error):
 	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
 	 * response APDU (in case of User PIN not verified):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 * * SW: SW_UNCHECKED_USER_PIN (0x98nn), with nn=number of tries remaining
 	 *
 	 * @param apdu Request APDU formatted this way:
 	 *             * 16 bytes: IV for transaction key (plaintext)
@@ -436,11 +438,11 @@ public class KeepassNFC extends Applet {
 	{
 		// Check if User PIN is validated
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 		// Double check for Fault Induction prevention
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 
 		byte[] buffer = apdu.getBuffer();
@@ -475,7 +477,7 @@ public class KeepassNFC extends Applet {
 	 * response APDU (in case of crypto error):
 	 * * 1 byte: RESPONSE_FAILED
 	 * response APDU (in case of User PIN not verified):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 * * SW: SW_UNCHECKED_USER_PIN (0x98nn), with nn=number of tries remaining
 	 *
 	 * @param apdu Request APDU containing encrypted data, already padded.
 	 *             If P1 contains 0x80, the block is considered to be the last.
@@ -484,11 +486,11 @@ public class KeepassNFC extends Applet {
 	{
 		// Check if User PIN is validated
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 		// Double check for Fault Induction prevention
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 
 		byte[] buffer = apdu.getBuffer();
@@ -570,7 +572,7 @@ public class KeepassNFC extends Applet {
 	 * response APDU (in case of crypto error):
 	 * * SW: 0xF100 | e.getReason() (INVALID_INIT in case of keys not initialized after genKeyPair())
 	 * response APDU (in case of User PIN not verified):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 * * SW: SW_UNCHECKED_USER_PIN (0x98nn), with nn=number of tries remaining
 	 *
 	 * @param apdu Request APDU, empty.
 	 */
@@ -578,11 +580,11 @@ public class KeepassNFC extends Applet {
 	{
 		// Check if User PIN is validated
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 		// Double check for Fault Induction prevention
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 
 		byte[] buffer = apdu.getBuffer();
@@ -622,7 +624,7 @@ public class KeepassNFC extends Applet {
 	 * response APDU (in case of incorrect length of provided input):
 	 * * SW: SW_WRONG_LENGTH (0x6700)
 	 * response APDU (in case of User PIN not verified):
-	 * * SW: SW_CONDITIONS_NOT_SATISFIED (0x6985)
+	 * * SW: SW_UNCHECKED_USER_PIN (0x98nn), with nn=number of tries remaining
 	 *
 	 * @param apdu Request APDU formatted this way:
 	 *             * 2 bytes: offset from which to write in scratch
@@ -632,11 +634,11 @@ public class KeepassNFC extends Applet {
 	{
 		// Check if User PIN is validated
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 		// Double check for Fault Induction prevention
 		if (!userPIN.isValidated()) {
-			ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+			ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 		}
 
 		byte[] buffer = apdu.getBuffer();

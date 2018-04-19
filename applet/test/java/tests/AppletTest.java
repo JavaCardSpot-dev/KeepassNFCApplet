@@ -96,7 +96,7 @@ public class AppletTest {
 			short keyLength = client.generateCardKey();
 			Assert.assertEquals(-1, keyLength);
 		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("6985"));
+			Assert.assertTrue(e.getMessage().startsWith("98"));
 		}
 	}
 
@@ -107,7 +107,7 @@ public class AppletTest {
 			RSAPublicKey key = client.getCardPubKey(client.getCardChannel());
 			Assert.assertNull(key);
 		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("6985"));
+			Assert.assertTrue(e.getMessage().startsWith("98"));
 		}
 	}
 
@@ -147,7 +147,7 @@ public class AppletTest {
 			int response = client.sendAPDU(client.getCardChannel(), command).getSW();
 			Assert.assertEquals(0x6985, response);
 		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("6985"));
+			Assert.assertTrue(e.getMessage().startsWith("98"));
 		}
 	}
 
@@ -208,7 +208,7 @@ public class AppletTest {
 			int response = client.sendAPDU(client.getCardChannel(), command).getSW();
 			Assert.assertEquals(0x6985, response);
 		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("6985"));
+			Assert.assertTrue(e.getMessage().startsWith("98"));
 		}
 	}
 
@@ -220,7 +220,7 @@ public class AppletTest {
 			int response = client.sendAPDU(client.getCardChannel(), command).getSW();
 			Assert.assertEquals(0x6985, response);
 		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("6985"));
+			Assert.assertTrue(e.getMessage().startsWith("98"));
 		}
 	}
 
@@ -421,7 +421,7 @@ public class AppletTest {
 		try {
 			Assert.assertFalse(errMsg, client.setUserPIN(new byte[]{0x34, 0x37, 0x39, 0x36}));
 		} catch (CardException e) {
-			Assert.assertTrue(e.getMessage().startsWith("6985"));
+			Assert.assertTrue(e.getMessage().startsWith("97"));
 		}
 	}
 
