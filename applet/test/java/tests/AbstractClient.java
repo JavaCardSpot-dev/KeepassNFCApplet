@@ -44,6 +44,7 @@ abstract public class AbstractClient {
 	final static byte INS_VERIFY_MASTER_PIN = (byte)0x77;
 	final static byte INS_VERIFY_USER_PIN = (byte)0x78;
 	final static byte INS_SET_USER_PIN = (byte)0x79;
+	final static byte INS_SET_MASTER_PIN = (byte)0x80;
 	public final static byte RESPONSE_SUCCEEDED = (byte)0x1;
 	public final static byte RESPONSE_FAILED = (byte)0x2;
 
@@ -461,6 +462,26 @@ abstract public class AbstractClient {
 			return true;
 		}
 		System.err.println("User PIN not set");
+		return false;
+	}
+
+	// set master PIN after verification of master PIN
+	public boolean setMasterPIN(byte[] newMasterPin, byte[] oldMasterPIN) throws CardException
+	{
+		if (verifyMasterPIN(oldMasterPIN))
+			return setMasterPIN(newMasterPin);
+		return false;
+	}
+
+	// set master PIN directly without prior master PIN verification
+	public boolean setMasterPIN(byte[] newMasterPin) throws CardException
+	{
+		byte[] command = constructApdu(INS_SET_MASTER_PIN, newMasterPin);
+		byte[] responseData = sendAPDU(command).getData();
+		if (responseData != null && responseData.length == 1 && responseData[0] == RESPONSE_SUCCEEDED) {
+			return true;
+		}
+		System.err.println("Master PIN not set");
 		return false;
 	}
 

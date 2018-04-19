@@ -21,6 +21,7 @@ public class KeepassNFC extends Applet {
 	final static byte INS_VERIFY_MASTER_PIN        = (byte)0x77;
 	final static byte INS_VERIFY_USER_PIN          = (byte)0x78;
 	final static byte INS_SET_USER_PIN             = (byte)0x79;
+	final static byte INS_SET_MASTER_PIN           = (byte)0x80;
 	final static byte RESPONSE_SUCCEEDED           = (byte)0x1;      // response byte for success
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
@@ -134,6 +135,9 @@ public class KeepassNFC extends Applet {
 					break;
 				case INS_VERIFY_USER_PIN:    // For Verification of User PIN
 					verifyUserPIN(apdu);
+					break;
+				case INS_SET_MASTER_PIN:        // For Setting of New User PIN
+					setMasterPIN(apdu);
 					break;
 				case INS_SET_USER_PIN:        // For Setting of New User PIN
 					setUserPIN(apdu);
@@ -259,6 +263,41 @@ public class KeepassNFC extends Applet {
 		}
 
 		userPIN.update(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen);
+		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
+	}
+
+	/**
+	 * Method to Set new Master PIN
+	 * response APDU (in case of successful setting of Master PIN):
+	 * * 1 byte: RESPONSE_SUCCEEDED
+	 * response APDU (in case of Master PIN not validated):
+	 * * SW: SW_UNCHECKED_MASTER_PIN (0x97nn), with nn=number of tries remaining
+	 * response APDU (in case of new Master PIN with wrong length):
+	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 *
+	 * @param apdu Request APDU containing the plaintext User PIN.
+	 */
+	protected void setMasterPIN(APDU apdu)
+	{
+		// Check if Master PIN is validated
+		if (!masterPIN.isValidated()) {
+			ISOException.throwIt((short)(SW_UNCHECKED_MASTER_PIN | masterPIN.getTriesRemaining()));
+		}
+		// Double check for Fault Induction prevention
+		if (!masterPIN.isValidated()) {
+			ISOException.throwIt((short)(SW_UNCHECKED_MASTER_PIN | masterPIN.getTriesRemaining()));
+		}
+
+		byte[] buffer = apdu.getBuffer();
+		short dataLen = apdu.setIncomingAndReceive();
+
+		// check length of new Master PIN
+		if (dataLen < MASTER_PIN_MIN_LENGTH || dataLen > MASTER_PIN_MAX_LENGTH) {
+			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+		}
+
+		masterPIN.update(buffer, ISO7816.OFFSET_CDATA, (byte)dataLen);
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 	}
