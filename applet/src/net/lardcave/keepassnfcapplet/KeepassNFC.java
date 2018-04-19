@@ -355,9 +355,10 @@ public class KeepassNFC extends Applet {
  
 		// check length of new Master PIN
 		if (dataLen < MASTER_PIN_MIN_LENGTH || dataLen > MASTER_PIN_MAX_LENGTH) {
-			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
-                        buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
+			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
                         apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
+                        ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+                        
 		}
                 else
                 {
