@@ -135,6 +135,9 @@ public class CardToolsClient extends AbstractClient {
 				case 0x6D00:
 					msg = "CardException: INS not supported";
 					break;
+				case 0x6F00:
+					msg = "Unknown Exception";
+					break;
 				default:
 					msg = "Some error occurred executing a command";
 					break;
