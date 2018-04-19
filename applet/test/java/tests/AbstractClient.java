@@ -377,7 +377,7 @@ abstract public class AbstractClient {
 		}
 		return null;
 	}
-
+        
 	public byte[] prepareVersionAPDU()
 	{
 		return constructApdu(CLA_CARD_KPNFC_ALL, INS_CARD_GET_VERSION);
