@@ -388,7 +388,7 @@ abstract public class AbstractClient {
 	{
 		byte[] response = sendAPDU(command).getData();
 
-		if (response != null) {
+		if (response != null && response.length == 2 && response[0] == RESPONSE_SUCCEEDED) {
 			System.out.println("Applet version " + response[1]);
 			return response[1];
 		}
