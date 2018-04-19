@@ -33,8 +33,18 @@ public class KeepassNFC extends Applet {
 	final static byte RESPONSE_FAILED              = (byte)0x2;      // response for failure
 	final static short RESPONSE_STATUS_OFFSET      = ISO7816.OFFSET_CDATA;	//offset defined as per ISO7816 standards
 	final static byte VERSION                      = (byte)0x2;   // version for Applet
-	final static byte REPO_INFO                    = (byte)0x2;   // Repository Info
 	
+	//https://github.com/JavaCardSpot-dev/KeepassNFCApplet
+	final static byte REPO_INFO[]                  = {(byte) 0x68 ,(byte) 0x74 ,(byte) 0x74 ,(byte) 0x70 ,(byte) 0x73 ,(byte) 0x3a ,
+							  (byte) 0x2f ,(byte) 0x2f ,(byte) 0x67 ,(byte) 0x69 ,(byte) 0x74 ,(byte) 0x68 ,
+							  (byte) 0x75 ,(byte) 0x62 ,(byte) 0x2e ,(byte) 0x63 ,(byte) 0x6f ,(byte) 0x6d ,
+							  (byte) 0x2f ,(byte) 0x4a ,(byte) 0x61 ,(byte) 0x76 ,(byte) 0x61 ,(byte) 0x43 ,
+							  (byte) 0x61 ,(byte) 0x72 ,(byte) 0x64 ,(byte) 0x53 ,(byte) 0x70 ,(byte) 0x6f ,
+							  (byte) 0x74 ,(byte) 0x2d ,(byte) 0x64 ,(byte) 0x65 ,(byte) 0x76 ,(byte) 0x2f ,
+							  (byte) 0x4b ,(byte) 0x65 ,(byte) 0x65 ,(byte) 0x70 ,(byte) 0x61 ,(byte) 0x73 ,
+							  (byte) 0x73 ,(byte) 0x4e ,(byte) 0x46 ,(byte) 0x43 ,(byte) 0x41 ,(byte) 0x70 ,
+							  (byte) 0x70 ,(byte) 0x6c ,(byte) 0x65 ,(byte) 0x74};  // Repository Info
+	//https://github.com/JavaCardSpot-dev/KeepassNFCApplet
 	final static short SW_UNCHECKED_MASTER_PIN     = (short)0x9700;  // SW for unchecked Master PIN
 	final static short SW_UNCHECKED_USER_PIN       = (short)0x9800;  // SW for unchecked User PIN
 	final static short SW_BAD_PIN                  = (short)0x9900;  // SW for bad PIN
@@ -641,8 +651,10 @@ public class KeepassNFC extends Applet {
 		apdu.setIncomingAndReceive();
 		buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 		buffer[RESPONSE_STATUS_OFFSET + 1] = REPO_INFO;
-		// sending the Repo info
-		apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)2);
+		// REPO_INFO = 52
+		Util.arrayCopyNonAtomic(REPO_INFO,(short) 0,buf, 1 +  ISO7816.OFFSET_CDATA, (short)REPO_INFO.length);
+        	// sending the version of Applet
+        	apdu.setOutgoingAndSend((short)ISO7816.OFFSET_CDATA, (short)(REPO_INFO.length+1));
 	}
 
 	/**
