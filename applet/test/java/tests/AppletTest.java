@@ -93,7 +93,7 @@ public class AppletTest {
 		Assert.assertEquals((byte)2, version);
 	}
 
-	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Configuring"}, timeOut = 10000)
+	@Test(dependsOnGroups = {"Installing", "PIN"}, groups = {"Configuring"}, timeOut = 100000)
 	public void setupNewCardKey() throws Exception
 	{
 		verifyUserPIN();
@@ -155,30 +155,33 @@ public class AppletTest {
 		}
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"})
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"PwKey"}, timeOut = 10000)
 	public void setPasswordKey() throws Exception
 	{
 		verifyUserPIN();
-		client.generateCardKey();
+		if (client.getCardType() != PHYSICAL)
+			client.generateCardKey();
 		boolean passwordSet = client.setNewPasswordKey("ASD");
 		Assert.assertEquals(true, passwordSet);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"PwKey"}, timeOut = 10000)
 	public void setDefaultPasswordKey() throws Exception
 	{
 		verifyUserPIN();
 		client.useDefaultKey = true;
-		client.generateCardKey();
+		if (client.getCardType() != PHYSICAL)
+			client.generateCardKey();
 		boolean passwordSet = client.setNewPasswordKey();
 		Assert.assertEquals(true, passwordSet);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
+	@Test(dependsOnGroups = {"Configuring", "PIN"}, groups = {"PwKey"}, timeOut = 10000)
 	public void setRandomPasswordKey() throws Exception
 	{
 		verifyUserPIN();
-		client.generateCardKey();
+		if (client.getCardType() != PHYSICAL)
+			client.generateCardKey();
 		boolean passwordSet = client.setNewPasswordKey();
 		Assert.assertEquals(true, passwordSet);
 	}
@@ -216,7 +219,7 @@ public class AppletTest {
 		return assertGeneralCryptoError(command, null);
 	}
 
-	@Test(dependsOnGroups = {"PIN"}, groups = {"Failing"})
+	@Test(dependsOnGroups = {"PIN"}, groups = {"PwKey", "Failing"})
 	public void unverifiedSetPasswordKey() throws Exception
 	{
 		byte[] command = AbstractClient.constructApdu(AbstractClient.INS_CARD_SET_PASSWORD_KEY);
@@ -230,11 +233,12 @@ public class AppletTest {
 		assertUnverifiedUserPIN(command);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
+	@Test(dependsOnGroups = {"Configuring", "PIN", "PwKey"}, timeOut = 10000)
 	public void clientEncrypt() throws Exception
 	{
 		verifyUserPIN();
-		client.generateCardKey();
+		if (client.getCardType() != PHYSICAL)
+			client.generateCardKey();
 		client.setNewPasswordKey();
 		client.setPasswordKeyIv();
 		byte[] encrypted = null;
@@ -264,7 +268,8 @@ public class AppletTest {
 
 	public void cardDecrypt(byte[] data) throws Exception
 	{
-		client.generateCardKey();
+		if (client.getCardType() != PHYSICAL)
+			client.generateCardKey();
 		client.setNewPasswordKey();
 		client.setPasswordKeyIv();
 		System.out.print(data.length);
@@ -290,7 +295,8 @@ public class AppletTest {
 	public void uninitializedPasswordPrepareDecryption() throws Exception
 	{
 		verifyUserPIN();
-		client.generateCardKey();
+		if (client.getCardType() != PHYSICAL)
+			client.generateCardKey();
 		byte[] command = AbstractClient.constructApdu(AbstractClient.INS_CARD_PREPARE_DECRYPTION, new byte[32]);
 		assertGeneralCryptoError(command);
 	}
@@ -302,28 +308,28 @@ public class AppletTest {
 		assertUnverifiedUserPIN(command);
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
+	@Test(dependsOnGroups = {"Configuring", "PIN", "PwKey"}, timeOut = 100000, dependsOnMethods = {"clientEncrypt"})
 	public void cardDecrypt16() throws Exception
 	{
 		verifyUserPIN();
 		cardDecrypt("TestDataCorrectL".getBytes());
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
+	@Test(dependsOnGroups = {"Configuring", "PIN", "PwKey"}, timeOut = 100000, dependsOnMethods = {"clientEncrypt"})
 	public void cardDecrypt32() throws Exception
 	{
 		verifyUserPIN();
 		cardDecrypt("TestDataCorrectLengthThats32Byte".getBytes());
 	}
 
-	@Test(dependsOnGroups = {"Configuring", "PIN"}, timeOut = 10000)
+	@Test(dependsOnGroups = {"Configuring", "PIN", "PwKey"}, timeOut = 100000, dependsOnMethods = {"clientEncrypt"})
 	public void cardDecrypt64() throws Exception
 	{
 		verifyUserPIN();
 		cardDecrypt("TestDataCorrectLengthThats32ByteTestDataCorrectLengthThats32Byte".getBytes());
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Installing", "Failing"})
 	public void unsupportedCLA() throws Exception
 	{
 		try {
@@ -347,14 +353,14 @@ public class AppletTest {
 		}
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Installing", "Failing"})
 	public void unsupportedINSall() throws Exception
 	{
 		byte[] apdu = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_ALL, (byte)0x00);
 		unsupportedINS(apdu);
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Installing", "Failing"})
 	public void unsupportedINScmd() throws Exception
 	{
 		byte[] apdu = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_CMD, (byte)0x00);
@@ -362,14 +368,14 @@ public class AppletTest {
 		unsupportedINS(apdu);
 	}
 
-	@Test(groups = {"Failing"})
+	@Test(groups = {"Installing", "Failing"})
 	public void unsupportedINSpin() throws Exception
 	{
 		byte[] apdu = AbstractClient.constructApdu(AbstractClient.CLA_CARD_KPNFC_PIN, (byte)0x00);
 		unsupportedINS(apdu);
 	}
 
-	@Test(groups = {"Failing"}, dependsOnGroups = {"PIN"})
+	@Test(groups = {"Failing", "PwKey"}, dependsOnGroups = {"PIN"})
 	public void uninitializedCardKeySettingPasswordKey() throws Exception
 	{
 		if (client.getCardType() != PHYSICAL) { // in PHYSICAL card no guarantee on uninitialization of Card Key can be given
