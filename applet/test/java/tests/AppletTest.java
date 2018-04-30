@@ -602,4 +602,18 @@ public class AppletTest {
 		Assert.assertTrue("SetMasterPIN should work after Master PIN verification.",
 				client.setMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}, newPIN));
 	}
+
+	@Test(groups = {"PwKey", "Failing"}, dependsOnGroups = {"Installing", "PIN"})
+	public void triggerDecryptRuntime() throws Exception
+	{
+		verifyUserPIN();
+		if (client.getCardType() != PHYSICAL)
+			client.generateCardKey();
+		byte[] passwordKey = new byte[client.AES_LEN / 8];
+		javacard.framework.Util.arrayFillNonAtomic(passwordKey, (short)0, (short)(client.AES_LEN / 8), (byte)0xFF);
+		client.writeToScratchArea(client.getCardChannel(), passwordKey);
+		byte[] command = client.constructApdu(client.INS_CARD_SET_PASSWORD_KEY);
+		int SWCode = assertGeneralCryptoError(command, "Trying to get RuntimeError");
+		Assert.assertEquals(0xF109, SWCode);
+	}
 }
