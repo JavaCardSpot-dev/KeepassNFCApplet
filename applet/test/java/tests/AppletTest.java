@@ -471,19 +471,22 @@ public class AppletTest {
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("99"));
 		}
-		Assert.assertTrue(client.verifyMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
+		if (client.getCardType() == PHYSICAL)
+			Assert.assertTrue(client.verifyMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
 		try {
 			Assert.assertFalse(errMsg, client.verifyMasterPIN(new byte[]{0x36, 0x32, 0x33, 0x34, 0x35, 0x36}));
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("99"));
 		}
-		Assert.assertTrue(client.verifyMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
+		if (client.getCardType() == PHYSICAL)
+			Assert.assertTrue(client.verifyMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
 		try {
 			Assert.assertFalse(errMsg, client.verifyMasterPIN(new byte[]{0x36, 0x32, 0x33, 0x34, 0x35, 0x36, 0x36, 0x32, 0x33, 0x34, 0x35, 0x36}));
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("99"));
 		}
-		Assert.assertTrue(client.verifyMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
+		if (client.getCardType() == PHYSICAL)
+			Assert.assertTrue(client.verifyMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
 	}
 
 	@Test(groups = {"PIN", "Failing"}, dependsOnGroups = {"Installing"})
@@ -496,19 +499,22 @@ public class AppletTest {
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("99"));
 		}
-		Assert.assertTrue(client.verifyUserPIN(new byte[]{0x31, 0x32, 0x33, 0x34}));
+		if (client.getCardType() == PHYSICAL)
+			Assert.assertTrue(client.verifyUserPIN(new byte[]{0x31, 0x32, 0x33, 0x34}));
 		try {
 			Assert.assertFalse(errMsg, client.verifyUserPIN(new byte[]{0x36, 0x32, 0x33, 0x34, 0x35, 0x36}));
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("99"));
 		}
-		Assert.assertTrue(client.verifyUserPIN(new byte[]{0x31, 0x32, 0x33, 0x34}));
+		if (client.getCardType() == PHYSICAL)
+			Assert.assertTrue(client.verifyUserPIN(new byte[]{0x31, 0x32, 0x33, 0x34}));
 		try {
 			Assert.assertFalse(errMsg, client.verifyUserPIN(new byte[]{0x36, 0x32, 0x33, 0x34, 0x35, 0x36, 0x36, 0x32, 0x33, 0x34, 0x35, 0x36}));
 		} catch (CardException e) {
 			Assert.assertTrue(e.getMessage().startsWith("99"));
 		}
-		Assert.assertTrue(client.verifyUserPIN(new byte[]{0x31, 0x32, 0x33, 0x34}));
+		if (client.getCardType() == PHYSICAL)
+			Assert.assertTrue(client.verifyUserPIN(new byte[]{0x31, 0x32, 0x33, 0x34}));
 	}
 
 	@Test(groups = {"PIN", "Failing"}, dependsOnMethods = {"verifyUserPIN", "verifyMasterPIN"})
