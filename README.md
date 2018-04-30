@@ -131,7 +131,7 @@ This applet can be improved in several ways:
  - [ ] Manage states of the applet to prevent wrong commands to be called
  - [ ] Setting initial Master/User PINs during installation with a payload
  - [ ] DH-like key derivation instead of PIN/transaction key (with shared secret set during installation)
- - [ ] Optimize for execution on real cards (currently, it can take several seconds to perform some actions)
+ - [ ] Optimize for execution on real cards (currently, it can take [several seconds or minutes](#timings) to perform specific actions)
 
 Also the repository can be improved:
 
@@ -142,6 +142,32 @@ Also the repository can be improved:
 
 ## Known compatibilities
 Until [701cdfc](https://github.com/JavaCardSpot-dev/KeepassNFCApplet/commit/701cdfc89de7831d23bb91bf415e1e20b1ee72c4) it should work on [JC30M48](http://www.javacardos.com/store/javacard-jc30m48cr.php?ws=github&prj=KeepassNFC), the downloading and installation have been tested on this card.
+
+Until June 2018 it was successfully tested with [NXP J2E 081 (NXP JCOP v2.4.x)](https://smartcard-atr.appspot.com/parse?ATR=3BF91300008131FE454A434F503234325233A2).
+
+## Timings
+Some profiling has been performed for all the commands (timings are in _ms_, average over 20 trials, smartcard [NXP J2E 081](#known-compatibilities)):
+
+| Header | Avg timing | Timing range | Notes |
+|:--- | ---:|:---:|:--- |
+| **9072** | 7 | 7 - 8 | (get lock reason/remaining PINs), direct read |
+| **9074** | 7 | 7 - 9 | (get version), direct read |
+| **A080** | 37 | 37 - 39 | (verify Master PIN) |
+| **A081** | 33 | 33 - 34 | (set Master PIN) |
+| **A082** | 37 | 37 - 38 | (verify User PIN) |
+| **A083** | 33 | 32 - 34 | (set User PIN) |
+| **B070**<br>`010000` | 13 | 13 - 14 | (get Card Key exponent) Supposed one execution every usage. |
+| **B070**<br>`020000` | 44 | 44 - 45 | (get Card Key modulus - first part) Supposed one execution every usage. |
+| **B071** | 714 | 714 - 716 | (set password key) Supposed one execution every long time. |
+| **B072** | 699 | 698 - 700 | (set transaction key) Supposed one execution every usage. |
+| **B073**<br>`P1!=80` | 96 | 95 - 97 | (decrypt one block) Decrypting 128 bytes unique block. |
+| **B075** | 21660 | 5557 - 54592 | (generate card key) Supposed one execution every long time. |
+| **B076** | 14 | 14 - 15 | (write to scratch) Writing 16 bytes to scratch ~encrypted transaction key. |
+| **B076** | 18 | 18 | (write to scratch) Writing 32 bytes to scratch ~encrypted password key. |
+| **B076** | 26 | 26 - 27 | (write to scratch) Writing 64 bytes to scratch, more than needed by keys. |
+
+About the **B073** command (block decryption): a fully populated KeePass database can be long around 200 KiB, that corresponds to 1600 executions of given command.
+These result in a total execution time of around 150 seconds, or 2.5 minutes. This _should_ be improved.
 
 ## Maintainers
 The original creator of the project is the [JavaCardOS](http://www.javacardos.com/) community.

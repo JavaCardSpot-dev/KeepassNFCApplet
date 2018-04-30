@@ -271,7 +271,7 @@ abstract public class AbstractClient {
 		setPasswordKeyIv(randomBytes(16));
 	}
 
-	private byte[] encryptWithCardKey(CardChannel channel, byte[] input) throws CardException
+	byte[] encryptWithCardKey(CardChannel channel, byte[] input) throws CardException
 	{
 		RSAPublicKey publicKey = getCardPubKey(channel);
 		if (publicKey == null) {
