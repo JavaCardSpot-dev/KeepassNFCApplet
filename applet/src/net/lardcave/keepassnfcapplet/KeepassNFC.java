@@ -54,10 +54,10 @@ public class KeepassNFC extends Applet {
 	private byte[] scratch_area = null;    // space to store the keys or data at different times during encryption/decryption
 	private byte[] aes_key_temporary = null;
 
-	private static final byte MASTER_PIN_MIN_LENGTH = 6;   // minimum length of Master PIN
-	private static final byte MASTER_PIN_MAX_LENGTH = 127; // maximum length of Master PIN
-	private static final byte USER_PIN_MIN_LENGTH = 4;     // Minimum length of User PIN
-	private static final byte USER_PIN_MAX_LENGTH = 127;   // Maximum Length of User PIN
+	private static final byte MASTER_PIN_MIN_LENGTH = (byte)6;   // minimum length of Master PIN
+	private static final byte MASTER_PIN_MAX_LENGTH = (byte)127; // maximum length of Master PIN
+	private static final byte USER_PIN_MIN_LENGTH = (byte)4;     // Minimum length of User PIN
+	private static final byte USER_PIN_MAX_LENGTH = (byte)127;   // Maximum Length of User PIN
 	private OwnerPIN masterPIN = null;
 	private OwnerPIN userPIN = null;
 	private static byte[] MASTER_PIN_DEFAULT = {0x31, 0x32, 0x33, 0x34, 0x35, 0x36}; //default masterPIN
@@ -214,9 +214,9 @@ public class KeepassNFC extends Applet {
 		}
 	}
 
-	private static final short PUBKEY_MAX_SEND_LENGTH = 120;
-	private static final byte PUBKEY_GET_EXPONENT = 1;
-	private static final byte PUBKEY_GET_MODULUS = 2;
+	private static final short PUBKEY_MAX_SEND_LENGTH = (short)120;
+	private static final byte PUBKEY_GET_EXPONENT = (byte)1;
+	private static final byte PUBKEY_GET_MODULUS = (byte)2;
 	private static final short PUBKEY_REQUEST_OFFSET_IDX = (short)(ISO7816.OFFSET_CDATA + 1);
 	private static final short PUBKEY_RESPONSE_EXPONENT_OFFSET = (short)3;
 	private static final short PUBKEY_RESPONSE_MODULUS_OFFSET = (short)5;
@@ -432,9 +432,9 @@ public class KeepassNFC extends Applet {
 				if (amountToSend > PUBKEY_MAX_SEND_LENGTH)
 					if ((short)-amountToSend < (short)-PUBKEY_MAX_SEND_LENGTH) // Fault Induction check
 						amountToSend = PUBKEY_MAX_SEND_LENGTH;
-				if (amountToSend < 0)
-					if ((short)-amountToSend > 0) // Fault Induction check
-						amountToSend = 0;
+				if (amountToSend < (short)0)
+					if ((short)-amountToSend > (short)0) // Fault Induction check
+						amountToSend = (short)0;
 
 				Util.arrayCopy(scratch_area, offset, buffer, PUBKEY_RESPONSE_MODULUS_IDX, amountToSend);
 
@@ -513,7 +513,7 @@ public class KeepassNFC extends Applet {
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 		// check that length of incoming data is 32, with fault induction prevention
-		if (length == 32)
+		if (length == (short)32)
 			if ((short)-length == (short)-32) {
 				decryptWithCardKey(scratch_area, (short)0, transaction_key);
 				try { // catch crypto exceptions
@@ -550,33 +550,33 @@ public class KeepassNFC extends Applet {
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
 
-		short encrypted = 0;
+		short encrypted = (short)0;
 		try {
-			short decrypted = 0;
-			if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {    // Not last block;
+			short decrypted = (short)0;
+			if ((buffer[ISO7816.OFFSET_P1] & 0x80) != (short)0) {    // Not last block;
 				decrypted = password_cipher.update(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
 			} else {                                          // Last block;
 				decrypted = password_cipher.doFinal(buffer, (short)ISO7816.OFFSET_CDATA, length, scratch_area, (short)0);
 			}
 			// default to failed status, so only if everything is good it is set to RESPONSE_SUCCEEDED
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
-			if (decrypted > 0) {
+			if (decrypted > (short)0) {
 				if ((short)-decrypted < (short)0) { // Fault induction check
 					/* We decrypted the blocks successfully, now re-encrypt with the transaction key. */
-					if ((buffer[ISO7816.OFFSET_P1] & 0x80) != 0) {    // Not last block;
+					if ((buffer[ISO7816.OFFSET_P1] & 0x80) != (short)0) {    // Not last block;
 						encrypted = transaction_cipher.update(scratch_area, (short)0, decrypted, buffer, (short)(RESPONSE_STATUS_OFFSET + 1));
 					} else {                                          // Last block;
 						encrypted = transaction_cipher.doFinal(scratch_area, (short)0, decrypted, buffer, (short)(RESPONSE_STATUS_OFFSET + 1));
 					}
-					if (encrypted > 0) {
+					if (encrypted > (short)0) {
 						if ((short)-encrypted < (short)0) { // Fault induction check
 							/* We encrypted the new block successfully. */
 							buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
 						} else {
-							encrypted = 0;
+							encrypted = (short)0;
 						}
 					} else {
-						encrypted = 0;
+						encrypted = (short)0;
 					}
 				}
 			}
@@ -729,7 +729,7 @@ public class KeepassNFC extends Applet {
 		if ((short)(aes_key_temporary.length) < (short)(RSA_KEYLENGTH / 8))
 			ISOException.throwIt((short)(ISO7816.SW_WRONG_LENGTH | 0x02));
 
-		short decryptedBytes = 0;
+		short decryptedBytes = (short)0;
 		try { // catch crypto exceptions
 			// getting the private key
 			RSAPrivateCrtKey private_key = (RSAPrivateCrtKey)card_key.getPrivate();
@@ -751,7 +751,7 @@ public class KeepassNFC extends Applet {
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 			output.clearKey();
-			decryptedBytes = 0;
+			decryptedBytes = (short)0;
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
 		} catch (RuntimeException e) {
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | (short)9));
