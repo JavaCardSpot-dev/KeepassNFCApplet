@@ -119,10 +119,10 @@ public class CardToolsClient extends AbstractClient {
 	public ResponseAPDU sendAPDU(final CommandAPDU request) throws CardException
 	{
 		ResponseAPDU resp = getCardMngr().transmit(request);
-		System.out.printf("Response SW is %02X", resp.getSW());
 		if (resp.getSW() != 0x9000) {
-			System.out.println(" - ERROR");
-			System.out.flush();
+			System.err.printf("Response SW is %02X", resp.getSW());
+			System.err.println(" - ERROR");
+			System.err.flush();
 			String msg;
 			switch (resp.getSW()) {
 				case 0xF102:
@@ -148,7 +148,8 @@ public class CardToolsClient extends AbstractClient {
 				System.err.println(msg);
 				System.err.flush();
 			}
-		} else {
+		} else if (isbDebug()) {
+			System.out.printf("Response SW is %02X", resp.getSW());
 			System.out.println(" - OK");
 		}
 		return resp;
@@ -167,7 +168,7 @@ public class CardToolsClient extends AbstractClient {
 
 	public CardManager installSelectApplet(byte[] installData) throws CardException
 	{
-		cardMngr = new CardManager(true, APPLET_AID_BYTE);
+		cardMngr = new CardManager(isbDebug(), APPLET_AID_BYTE);
 		final RunConfig runCfg = RunConfig.getDefaultConfig();
 
 		runCfg.setAppletToSimulate(appletClass)

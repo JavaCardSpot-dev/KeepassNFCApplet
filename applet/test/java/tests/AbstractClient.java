@@ -18,6 +18,8 @@ import java.util.List;
 
 @SuppressWarnings({"WeakerAccess", "Duplicates"})
 abstract public class AbstractClient {
+	public boolean bDebug;
+
 	public boolean useDefaultKey;
 	public String testDataString;
 	public List<String> command = new ArrayList<>();
@@ -233,7 +235,7 @@ abstract public class AbstractClient {
 
 		byte[] command = constructApdu(INS_CARD_SET_PASSWORD_KEY);
 		ResponseAPDU response = sendAPDU(channel, command);
-		if (response.getData()[0] == RESPONSE_SUCCEEDED) {
+		if (response.getData()[0] == RESPONSE_SUCCEEDED && isbDebug()) {
 			System.out.println("Password key set to " + toHex(passwordKey));
 		}
 		return response.getData()[0] == RESPONSE_SUCCEEDED;
@@ -314,9 +316,11 @@ abstract public class AbstractClient {
 		byte[] result;
 		result = cipher.doFinal(input);
 
-		System.out.println("Original:  " + toHex(input));
-		System.out.println("IV:        " + toHex(passwordKeyIv));
-		System.out.println("Encrypted: " + toHex(result));
+		if (isbDebug()) {
+			System.out.println("Original:  " + toHex(input));
+			System.out.println("IV:        " + toHex(passwordKeyIv));
+			System.out.println("Encrypted: " + toHex(result));
+		}
 		return result;
 	}
 
@@ -367,7 +371,7 @@ abstract public class AbstractClient {
 
 			// This is encrypted with the transaction key, so decrypt it.
 			byte[] decrypted = decryptWithTransactionKey(response.getData(), 1, response.getData().length - 1, transactionKey, transactionIv);
-			if (decrypted != null) {
+			if (decrypted != null && isbDebug()) {
 				for (byte b : decrypted) {
 					System.out.print(Integer.toHexString(b & 0xff) + ' ');
 				}
@@ -393,7 +397,8 @@ abstract public class AbstractClient {
 		byte[] response = sendAPDU(command).getData();
 
 		if (response != null && response.length == 2 && response[0] == RESPONSE_SUCCEEDED) {
-			System.out.println("Applet version " + response[1]);
+			if (isbDebug())
+				System.out.println("Applet version " + response[1]);
 			return response[1];
 		}
 		throw new CardException("Unknown error");
@@ -404,7 +409,7 @@ abstract public class AbstractClient {
 		byte[] command = constructApdu(CLA_CARD_KPNFC_ALL, INS_CARD_GET_LOCK_REASON);
 		byte[] response = sendAPDU(command).getData();
 
-		if (response.length >= 2) {
+		if (response.length >= 2 && isbDebug()) {
 			System.out.println("Remaining Master PIN tries: " + response[0]);
 			System.out.println("Remaining   User PIN tries: " + response[1]);
 		}
@@ -625,4 +630,13 @@ abstract public class AbstractClient {
 		return Arrays.copyOfRange(decoded, 0, index);
 	}
 
+	public boolean isbDebug()
+	{
+		return bDebug;
+	}
+
+	public void setbDebug(boolean bDebug)
+	{
+		this.bDebug = bDebug;
+	}
 }

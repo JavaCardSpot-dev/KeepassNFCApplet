@@ -33,9 +33,7 @@ public class SimulatedCardChannelLocal extends CardChannel {
         ResponseAPDU responseAPDU = null;
 
         try {
-            log(apdu);
             responseAPDU = this.m_simulator.transmitCommand(apdu);
-            log(responseAPDU);
             // TODO: Add delay corresponding to real cards
             //int delay = OperationTimes.getCardOperationDelay(apdu);
             //Thread.sleep(delay);
@@ -55,27 +53,4 @@ public class SimulatedCardChannelLocal extends CardChannel {
     public void close() throws CardException {
         m_simulator.reset();
     }
-    
-    
-    private static void log(CommandAPDU cmd) {
-        System.out.printf("--> [%s] %s\n", Util.toHex(cmd.getBytes()), cmd.getBytes().length);
-    }
-
-    private static void log(ResponseAPDU response, long time) {
-        String swStr = String.format("%02X", response.getSW());
-        byte[] data = response.getData();
-        if (data.length > 0) {
-            System.out.printf("<-- %s %s (%d)\n", Util.toHex(data), swStr,
-                    data.length);
-        } else {
-            System.out.printf("<-- %s\n", swStr);
-        }
-        if (time > 0) {
-            System.out.printf(String.format("Elapsed time %d ms\n", time));
-        }
-    }
-
-    private static void log(ResponseAPDU response) {
-        log(response, 0);
-    }    
 }
