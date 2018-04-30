@@ -86,7 +86,7 @@ The user can obtain two different information pieces about the status of the app
 ### APDU formats
 | Header | Name | Payload (plaintext) | Functionality | Authenticated | Requirements | Response format |
 |:--- |:--- |:--- |:--- |:--- |:--- |:--- |
-| **9072** | lock reason/PIN trials | _empty_ | Return number of trials remainin for both PINs. In future can contain more information | | | `mmuu`, with `mm` remaining trials for Master PIN and `uu` for User PIN
+| **9072** | lock reason/PIN trials | _empty_ | Return number of trials remaining for both PINs. In future can contain more information | | | `mmuu`, with `mm` remaining trials for Master PIN and `uu` for User PIN
 | **9074**<br>~~**B074**~~* | get version | _empty_ | Return applet version | | | `01vv`, with `vv` the actual version.
 | **A080** | verify Master PIN | Master PIN | Verify given Master PIN against the stored one | | | <ul><li>if successful `01` <li>if wrong PIN `SW=0x99nn`, with `nn` as number of trials remaining </ul> |
 | **A081** | set Master PIN | New Master PIN | Set Master PIN to given data | Master (**A080**) | | | 
@@ -97,7 +97,7 @@ The user can obtain two different information pieces about the status of the app
 | **B070** | get public key | `xxoooo` | --- | User (**A082**) | | `02` (failure) when `xx` different from `01` or `02`
 | **B071** | set password key | _empty_ | Decrypt first bytes in scratch area as password key (AES-256, saved also after disconnection) | User (**A082**) | **B075** successfully called and **B076** used to store encrypted password key in scratch area | `01` if successful
 | **B072** | prepare decryption | password & transaction IVs (16+16 bytes) | Decrypt first bytes in scratch area as transaction key (AES-128, saved only for the session). Initialize password cipher for decryption and transaction cipher for encryption. | User (**A082**) | **B076** used to store encrypted transaction key in scratch area | `01` if successful
-| **B073**<br>`P1=80` | decrypt block | encrypted block | Decrypts given data with password cipher expecting more data. Then, encrypts the result with transaction cipher. | User (**A082**) | **B072** successfully called | `01b...`, with `b...` actual block
+| **B073**<br>`P1=80` | decrypt block | encrypted block | Decrypts given data with password cipher expecting more data. Then encrypts the result with transaction cipher. | User (**A082**) | **B072** successfully called | `01b...`, with `b...` actual block
 | **B073**<br>`P1!=80` | decrypt block | encrypted block | Same as above, but as last block. This will also reset ciphers. | User (**A082**) | **B072** successfully called | `01b...`, with `b...` actual block
 | **B075** | generate key pair | _empty_ | Generate card's key pair. | User (**A082**) | | `01ssss`, with `ssss` a short for key length.
 | **B076** | write to scratch | `oodd...` | Store data (`dd...`) in internal scratch area at offset `oo` | User (**A082**) | | `01ssss`, with `ssss` a short for free space after saved data.
@@ -109,16 +109,16 @@ Apart from standard exception codes, the following specific SW codes are used:
 
 | SW | Meaning | `ISO7816` equivalence |
 |:--- |:--- |:--- |
-| **97nn** | Action requires Master PIN verification, but **A080** wasn't successfully called. `nn` contains remaining trials. | |
-| **98nn** | Action requires User PIN verification, but **A082** wasn't successfully called. `nn` contains remaining trials. | |
-| **99nn** | The verification of Master/User PIN gone wrong. `nn` contains remaining trials. | |
+| **97nn** | Action requires Master PIN verification, but **A080** wasn't successfully called. `nn` contains remaining numebr of trials. | |
+| **98nn** | Action requires User PIN verification, but **A082** wasn't successfully called. `nn` contains remaining number of trials. | |
+| **99nn** | The verification of Master/User PIN gone wrong. `nn` contains remaining number of trials. | |
 | **6700** | Input data has wrong length compared to expected one. | `SW_WRONG_LENGTH` |
 | **6A80** | Input data has different values than expected. | `SW_WRONG_DATA` |
 | **6982** | In case of error caused by supposed tampering. | `SW_SECURITY_STATUS_NOT_SATISFIED` |
 | **F1tt** | A crypto-related exception occurred. `tt` from `01` to `05` are standard CryptoException reasons, while `09` is used for rare situation when evaluating a number too big. This only happened if skipping some commands while setting password/trasaction keys. | |
 
 ## Future work
-Help is always appreciated! Please read this suggestions for what to do, and always follow the [contibution rules](CONTRIBUTING.md)!
+Help is always appreciated! Please read these suggestions for what to do, and always follow the [contibution rules](CONTRIBUTING.md)!
 
 This applet can be improved in several ways:
 
