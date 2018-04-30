@@ -107,14 +107,15 @@ The user can obtain two different information pieces about the status of the app
 ### Error codes
 Apart from standard exception codes, the following specific SW codes are used:
 
-| SW | Meaning |
-|:--- |:--- |
-| **97nn** | Action requires Master PIN verification, but **A080** wasn't successfully called. `nn` contains remaining trials. |
-| **98nn** | Action requires User PIN verification, but **A082** wasn't successfully called. `nn` contains remaining trials. |
-| **99nn** | The verification of Master/User PIN gone wrong. `nn` contains remaining trials. |
-| **6700** | Input data has wrong length compared to expected one. |
-| **6A80** | Input data has different values than expected. |
-| **F1tt** | A crypto-related exception occurred. `tt` from `01` to `05` are standard CryptoException reasons, while `09` is used for rare situation when evaluating a number too big. This only happened if skipping some commands while setting password/trasaction keys. |
+| SW | Meaning | `ISO7816` equivalence |
+|:--- |:--- |:--- |
+| **97nn** | Action requires Master PIN verification, but **A080** wasn't successfully called. `nn` contains remaining trials. | |
+| **98nn** | Action requires User PIN verification, but **A082** wasn't successfully called. `nn` contains remaining trials. | |
+| **99nn** | The verification of Master/User PIN gone wrong. `nn` contains remaining trials. | |
+| **6700** | Input data has wrong length compared to expected one. | `SW_WRONG_LENGTH` |
+| **6A80** | Input data has different values than expected. | `SW_WRONG_DATA` |
+| **6982** | In case of error caused by supposed tampering. | `SW_SECURITY_STATUS_NOT_SATISFIED` |
+| **F1tt** | A crypto-related exception occurred. `tt` from `01` to `05` are standard CryptoException reasons, while `09` is used for rare situation when evaluating a number too big. This only happened if skipping some commands while setting password/trasaction keys. | |
 
 ## Future work
 Help is always appreciated! Please read this suggestions for what to do, and always follow the [contibution rules](CONTRIBUTING.md)!
