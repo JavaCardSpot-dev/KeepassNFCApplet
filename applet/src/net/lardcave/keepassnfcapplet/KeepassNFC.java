@@ -88,6 +88,7 @@ public class KeepassNFC extends Applet {
 		userPIN.update(USER_PIN_DEFAULT, (short)0, (byte)USER_PIN_DEFAULT.length);
 
 		cleanAllSensitiveData();
+		cleanTransientSensitiveData();
 		register();
 	}
 
@@ -115,7 +116,6 @@ public class KeepassNFC extends Applet {
 	{
 		password_key.clearKey();
 		card_key.getPrivate().clearKey();
-		cleanTransientSensitiveData();
 		card_key.getPublic().clearKey();
 	}
 
@@ -175,10 +175,14 @@ public class KeepassNFC extends Applet {
 			case CLA_CARD_KPNFC_CMD:
 				// Check if User PIN is validated
 				if (!userPIN.isValidated()) {
+					cleanTransientSensitiveData();
+					cleanTransientSensitiveData();
 					ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 				}
 				// Double check for Fault Induction prevention
 				if (!userPIN.isValidated()) {
+					cleanTransientSensitiveData();
+					cleanTransientSensitiveData();
 					ISOException.throwIt((short)(SW_UNCHECKED_USER_PIN | userPIN.getTriesRemaining()));
 				}
 
@@ -250,6 +254,7 @@ public class KeepassNFC extends Applet {
 				cleanAllSensitiveData();
 			}
 			cleanTransientSensitiveData();
+			cleanTransientSensitiveData();
 			ISOException.throwIt((short)(SW_BAD_PIN | masterPIN.getTriesRemaining()));
 		}
 
@@ -273,6 +278,7 @@ public class KeepassNFC extends Applet {
 			apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
 		} else {
 			cleanTransientSensitiveData();
+			cleanTransientSensitiveData();
 			ISOException.throwIt((short)(SW_BAD_PIN | userPIN.getTriesRemaining()));
 		}
 	}
@@ -292,10 +298,14 @@ public class KeepassNFC extends Applet {
 	{
 		// Check if Master PIN is validated
 		if (!masterPIN.isValidated()) {
+			cleanTransientSensitiveData();
+			cleanTransientSensitiveData();
 			ISOException.throwIt((short)(SW_UNCHECKED_MASTER_PIN | masterPIN.getTriesRemaining()));
 		}
 		// Double check for Fault Induction prevention
 		if (!masterPIN.isValidated()) {
+			cleanTransientSensitiveData();
+			cleanTransientSensitiveData();
 			ISOException.throwIt((short)(SW_UNCHECKED_MASTER_PIN | masterPIN.getTriesRemaining()));
 		}
 
@@ -331,10 +341,14 @@ public class KeepassNFC extends Applet {
 	{
 		// Check if Master PIN is validated
 		if (!masterPIN.isValidated()) {
+			cleanTransientSensitiveData();
+			cleanTransientSensitiveData();
 			ISOException.throwIt((short)(SW_UNCHECKED_MASTER_PIN | masterPIN.getTriesRemaining()));
 		}
 		// Double check for Fault Induction prevention
 		if (!masterPIN.isValidated()) {
+			cleanTransientSensitiveData();
+			cleanTransientSensitiveData();
 			ISOException.throwIt((short)(SW_UNCHECKED_MASTER_PIN | masterPIN.getTriesRemaining()));
 		}
 
@@ -601,7 +615,7 @@ public class KeepassNFC extends Applet {
 			buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_FAILED;
 			encrypted = 0;
 		} finally {
-			// cleanup sensitive data, with fault induction prevention
+			// cleanup unnecessary sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 			Util.arrayFillNonAtomic(scratch_area, (short)0, (short)scratch_area.length, (byte)0);
 		}
@@ -678,8 +692,10 @@ public class KeepassNFC extends Applet {
 		try {
 			card_key.genKeyPair();
 		} catch (CryptoException e) {
-			card_key.getPrivate().clearKey();
-			card_key.getPublic().clearKey();
+			cleanAllSensitiveData();
+			cleanAllSensitiveData();
+			cleanTransientSensitiveData();
+			cleanTransientSensitiveData();
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
 		}
 
@@ -762,15 +778,24 @@ public class KeepassNFC extends Applet {
 				throw new CryptoException(CryptoException.INVALID_INIT);
 		} catch (CryptoException e) {
 			// cleanup sensitive data, with fault induction prevention
-			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
-			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
+			cleanTransientSensitiveData();
+			cleanTransientSensitiveData();
+			// in cleanTransientSensitiveData only transaction_key is cleared
+			output.clearKey();
 			output.clearKey();
 			decryptedBytes = (short)0;
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
 		} catch (RuntimeException e) {
+			// cleanup sensitive data, with fault induction prevention
+			cleanTransientSensitiveData();
+			cleanTransientSensitiveData();
+			// in cleanTransientSensitiveData only transaction_key is cleared
+			output.clearKey();
+			output.clearKey();
+			decryptedBytes = (short)0;
 			ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | (short)9));
 		} finally {
-			// cleanup sensitive data, with fault induction prevention
+			// cleanup unnecessary sensitive data, with fault induction prevention
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 			Util.arrayFillNonAtomic(aes_key_temporary, (short)0, (short)aes_key_temporary.length, (byte)0);
 		}
