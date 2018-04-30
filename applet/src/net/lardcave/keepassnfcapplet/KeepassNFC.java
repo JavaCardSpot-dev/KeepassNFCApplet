@@ -462,6 +462,8 @@ public class KeepassNFC extends Applet {
 	 * * 1 byte: RESPONSE_SUCCEEDED
 	 * response APDU (in case of provided input):
 	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 * response APDU (in case of supposed tampering):
+	 * * SW: SW_SECURITY_STATUS_NOT_SATISFIED (0x6982)
 	 * response APDU (in case of crypto error):
 	 * * SW: SW_CRYPTO_EXCEPTION (0xF1rr), with rr=reason code from CryptoException
 	 * response APDU (in case of User PIN not verified):
@@ -473,13 +475,18 @@ public class KeepassNFC extends Applet {
 	{
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
+		short decrypted = (short)0;
 		// check that length of incoming data is 0, with fault induction prevention
-		if (length == (short)0)
-			if ((short)-length == (short)0) {
-				decryptWithCardKey(scratch_area, (short)0, password_key);
-				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-				apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
-				ISOException.throwIt(ISO7816.SW_NO_ERROR);
+		if (length == decrypted)
+			if ((short)-length == decrypted) {
+				decrypted = decryptWithCardKey(scratch_area, (short)0, password_key);
+				if (decrypted > (short)0)
+					if ((short)-decrypted < (short)0) {
+						buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+						apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
+						ISOException.throwIt(ISO7816.SW_NO_ERROR);
+					}
+				ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
 			}
 		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
@@ -499,6 +506,8 @@ public class KeepassNFC extends Applet {
 	 * * 1 byte: RESPONSE_SUCCEEDED
 	 * response APDU (in case of incorrect length of provided input):
 	 * * SW: SW_WRONG_LENGTH (0x6700)
+	 * response APDU (in case of supposed tampering):
+	 * * SW: SW_SECURITY_STATUS_NOT_SATISFIED (0x6982)
 	 * response APDU (in case of crypto error):
 	 * * SW: SW_CRYPTO_EXCEPTION (0xF1rr), with rr=reason code from CryptoException
 	 * response APDU (in case of User PIN not verified):
@@ -512,21 +521,26 @@ public class KeepassNFC extends Applet {
 	{
 		byte[] buffer = apdu.getBuffer();
 		short length = apdu.setIncomingAndReceive();
+		short decrypted = (short)0;
 		// check that length of incoming data is 32, with fault induction prevention
 		if (length == (short)32)
 			if ((short)-length == (short)-32) {
-				decryptWithCardKey(scratch_area, (short)0, transaction_key);
-				try { // catch crypto exceptions
-					transaction_cipher.init(transaction_key, Cipher.MODE_ENCRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 0), (short)16);
-					password_cipher.init(password_key, Cipher.MODE_DECRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 16), (short)16);
-				} catch (CryptoException e) {
-					// cleanup sensitive data
-					transaction_key.clearKey();
-					ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
-				}
-				buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
-				apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
-				ISOException.throwIt(ISO7816.SW_NO_ERROR);
+				decrypted = decryptWithCardKey(scratch_area, (short)0, transaction_key);
+				if (decrypted > (short)0)
+					if ((short)-decrypted < (short)0) {
+						try { // catch crypto exceptions
+							transaction_cipher.init(transaction_key, Cipher.MODE_ENCRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 0), (short)16);
+							password_cipher.init(password_key, Cipher.MODE_DECRYPT, buffer, (short)(ISO7816.OFFSET_CDATA + 16), (short)16);
+						} catch (CryptoException e) {
+							// cleanup sensitive data
+							transaction_key.clearKey();
+							ISOException.throwIt((short)(SW_CRYPTO_EXCEPTION | e.getReason()));
+						}
+						buffer[RESPONSE_STATUS_OFFSET] = RESPONSE_SUCCEEDED;
+						apdu.setOutgoingAndSend(RESPONSE_STATUS_OFFSET, (short)1);
+						ISOException.throwIt(ISO7816.SW_NO_ERROR);
+					}
+				ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
 			}
 		ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 	}
