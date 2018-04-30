@@ -36,6 +36,7 @@ public class AppletTest {
 		client = new CardToolsClient(KeepassNFC.class, "F0375472804FD5FA0F243E42C1B63825");
 		client.setThrowOnCommandException(true);
 		client.setCardType(JCARDSIM);
+		client.setbDebug(true);
 		// client.setCardType(PHYSICAL);
 	}
 
@@ -272,15 +273,21 @@ public class AppletTest {
 			client.generateCardKey();
 		client.setNewPasswordKey();
 		client.setPasswordKeyIv();
-		System.out.print(data.length);
-		System.out.println(" bytes to encrypt");
+		if (client.getCardMngr().isbDebug()) {
+			System.out.print(data.length);
+			System.out.println(" bytes to encrypt");
+		}
 		byte[] encryptedData = client.encrypt(data);
-		System.out.print(encryptedData.length);
-		System.out.println(" bytes to decrypt");
+		if (client.getCardMngr().isbDebug()) {
+			System.out.print(encryptedData.length);
+			System.out.println(" bytes to decrypt");
+		}
 		byte[] decryptedData = client.decrypt(encryptedData);
 		Assert.assertNotNull(decryptedData);
-		System.out.println("Prior: " + Util.toHex(data));
-		System.out.println("After: " + Util.toHex(decryptedData));
+		if (client.getCardMngr().isbDebug()) {
+			System.out.println("Prior: " + Util.toHex(data));
+			System.out.println("After: " + Util.toHex(decryptedData));
+		}
 		Assert.assertTrue(Arrays.equals(data, decryptedData));
 	}
 
