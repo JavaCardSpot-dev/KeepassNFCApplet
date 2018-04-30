@@ -461,7 +461,7 @@ public class AppletTest {
 		assertIncorrectLength(apdu, "getCardPubKey should throw error if data provided is not 3 bytes.");
 	}
 
-	@Test(groups = {"PIN", "Failing"})
+	@Test(groups = {"PIN", "Failing"}, dependsOnGroups = {"Installing"})
 	public void incorrectMasterPIN() throws Exception
 	{
 		// tests incorrect Master PIN
@@ -486,7 +486,7 @@ public class AppletTest {
 		Assert.assertTrue(client.verifyMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
 	}
 
-	@Test(groups = {"PIN", "Failing"})
+	@Test(groups = {"PIN", "Failing"}, dependsOnGroups = {"Installing"})
 	public void incorrectUserPIN() throws Exception
 	{
 		// tests incorrect User PIN
@@ -548,7 +548,7 @@ public class AppletTest {
 		}
 	}
 
-	@Test(groups = {"PIN"})
+	@Test(groups = {"PIN"}, dependsOnGroups = {"Installing"})
 	public void verifyMasterPIN() throws Exception
 	{
 		// test verifying User PIN
@@ -556,7 +556,7 @@ public class AppletTest {
 				client.verifyMasterPIN(new byte[]{0x31, 0x32, 0x33, 0x34, 0x35, 0x36}));
 	}
 
-	@Test(groups = {"PIN"})
+	@Test(groups = {"PIN"}, dependsOnGroups = {"Installing"})
 	public void verifyUserPIN() throws Exception
 	{
 		// test verifying User PIN
