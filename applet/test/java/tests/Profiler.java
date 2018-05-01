@@ -282,6 +282,7 @@ public class Profiler {
 
 		byte[] command = client.constructApdu(client.INS_CARD_SET_PASSWORD_KEY);
 		lastResponse = client.sendAPDU(command);
+		// Calculation of Time
 		long time = client.getCardMngr().getLastTransmitTime();
 		if (lastResponse.getData()[0] == client.RESPONSE_SUCCEEDED) {
 			// System.out.println("Password key set to " + client.toHex(passwordKey));
@@ -319,6 +320,7 @@ public class Profiler {
 		System.arraycopy(transactionIv, 0, transactionParameters, 0, 16);
 		System.arraycopy(client.passwordKeyIv, 0, transactionParameters, 16, 16);
 		ResponseAPDU response = client.sendAPDU(client.constructApdu(client.INS_CARD_PREPARE_DECRYPTION, transactionParameters));
+		//Calculation of Time
 		long time = client.getCardMngr().getLastTransmitTime();
 		if (response.getData()[0] == 1)
 			return time;
@@ -361,6 +363,7 @@ public class Profiler {
 		// Decryption has been initialised, so ask the card to decrypt the text.
 		apdu = client.constructApdu(client.INS_CARD_DECRYPT_BLOCK, encryptedData);
 		lastResponse = client.sendAPDU(apdu);
+		// Calculation of Time
 		long time = client.getCardMngr().getLastTransmitTime();
 		ResponseAPDU response = lastResponse;
 
